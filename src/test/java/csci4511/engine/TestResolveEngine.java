@@ -19,13 +19,9 @@ public class TestResolveEngine {
 		Board board = createBoard("1,ENGLAND;4,GERMANY", "");
 		List<Unit> units = board.getUnits();
 		Assert.assertEquals(2, units.size());
-		for (Unit u : units) {
-			Assert.assertNull(u.getAction());
-		}
+		units.forEach(u -> Assert.assertNull(u.getAction()));
 		ResolveEngine.resolve(board);
-		for (Unit u : units) {
-			Assert.assertNotNull(u.getAction());
-		}
+		units.forEach(u -> Assert.assertNotNull(u.getAction()));
 	}
 	
 	@Test
@@ -33,13 +29,9 @@ public class TestResolveEngine {
 		Board board = createBoard("1,ENGLAND;4,GERMANY", "H,1,1;H,4,4");
 		List<Unit> units = board.getUnits();
 		Assert.assertEquals(2, units.size());
-		for (Unit u : units) {
-			Assert.assertNotNull(u.getAction());
-		}
+		units.forEach(u -> Assert.assertNotNull(u.getAction()));
 		ResolveEngine.resolve(board);
-		for (Unit u : units) {
-			Assert.assertNotNull(u.getAction());
-		}
+		units.forEach(u -> Assert.assertNotNull(u.getAction()));
 	}
 	
 	private static Board createBoard(String unitStr, String moveStr) {
