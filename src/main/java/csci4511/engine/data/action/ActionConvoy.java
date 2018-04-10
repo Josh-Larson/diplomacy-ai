@@ -18,4 +18,9 @@ public class ActionConvoy extends Action {
 		return action;
 	}
 	
+	@Override
+	public String toString() {
+		return "ActionConvoy["+getUnit()+": "+action+"]";
+	}
+	
 }

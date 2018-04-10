@@ -19,4 +19,9 @@ public class ActionAttack extends Action {
 		return destination;
 	}
 	
+	@Override
+	public String toString() {
+		return "ActionAttack["+getUnit()+" to "+destination+"]";
+	}
+	
 }

@@ -18,4 +18,9 @@ public class ActionSupport extends Action {
 		return action;
 	}
 	
+	@Override
+	public String toString() {
+		return "ActionSupport["+getUnit()+" to "+action+"]";
+	}
+	
 }

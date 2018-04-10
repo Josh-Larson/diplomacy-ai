@@ -10,4 +10,9 @@ public class ActionHold extends Action {
 		super(ActionType.HOLD, unit, unit.getNode());
 	}
 	
+	@Override
+	public String toString() {
+		return "ActionHold["+getUnit()+"]";
+	}
+	
 }

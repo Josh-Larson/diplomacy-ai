@@ -4,6 +4,7 @@ import csci4511.engine.data.action.Action;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.util.List;
 
 public class Unit {
 	
@@ -45,5 +46,15 @@ public class Unit {
 	
 	public void setAction(Action action) {
 		this.action = action;
+	}
+	
+	@Nonnull
+	public List<Node> getMovementLocations() {
+		return type == UnitType.ARMY ? node.getArmyMovements() : node.getFleetMovements();
+	}
+	
+	@Override
+	public String toString() {
+		return "Unit["+country+"@"+node.getName()+"]";
 	}
 }

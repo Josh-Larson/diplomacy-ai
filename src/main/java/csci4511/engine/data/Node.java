@@ -9,6 +9,7 @@ import java.util.List;
 
 public class Node {
 	
+	private final String name;
 	private final boolean supply;
 	private final Country homeCountry;
 	private final List<Node> armyMovements;
@@ -18,7 +19,8 @@ public class Node {
 	private Country country;
 	private Unit garissoned;
 	
-	public Node(boolean supply, Country homeCountry) {
+	public Node(@Nonnull String name, boolean supply, Country homeCountry) {
+		this.name = name;
 		this.supply = supply;
 		this.homeCountry = homeCountry;
 		this.armyMovements = new ArrayList<>();
@@ -26,6 +28,11 @@ public class Node {
 		this.resolvingActions = new ArrayList<>();
 		this.country = homeCountry;
 		this.garissoned = null;
+	}
+	
+	@Nonnull
+	public String getName() {
+		return name;
 	}
 	
 	public boolean isSupply() {
@@ -78,11 +85,16 @@ public class Node {
 		fleetMovements.add(node);
 	}
 	
-	public void clearResolvingActions() {
-		resolvingActions.clear();
-	}
-	
 	public void addAction(@Nonnull Action action) {
 		resolvingActions.add(action);
+	}
+	
+	public void removeAction(@Nonnull Action action) {
+		resolvingActions.remove(action);
+	}
+	
+	@Override
+	public String toString() {
+		return "Node["+name+"]";
 	}
 }
