@@ -5,7 +5,7 @@ import csci4511.engine.data.Unit;
 
 import javax.annotation.Nonnull;
 
-public class Action {
+public abstract class Action {
 	
 	private final ActionType type;
 	private final Unit unit;
@@ -31,5 +31,17 @@ public class Action {
 	public Node getStart() {
 		return start;
 	}
+	
+	@Override
+	public Action clone() {
+		try {
+			return (Action) super.clone();
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
+	}
+	
+	@Nonnull
+	public abstract Node getDestination();
 	
 }

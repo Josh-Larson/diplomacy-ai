@@ -6,8 +6,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-public class Node {
+public class Node implements Cloneable {
 	
 	private final String name;
 	private final boolean supply;
@@ -24,8 +25,8 @@ public class Node {
 		this.supply = supply;
 		this.homeCountry = homeCountry;
 		this.armyMovements = new ArrayList<>();
-		this.fleetMovements = new ArrayList<>();;
-		this.resolvingActions = new ArrayList<>();
+		this.fleetMovements = new ArrayList<>();
+		this.resolvingActions = new CopyOnWriteArrayList<>();
 		this.country = homeCountry;
 		this.garissoned = null;
 	}
@@ -59,6 +60,10 @@ public class Node {
 		return resolvingActions;
 	}
 	
+	public boolean isResolved() {
+		return resolvingActions.isEmpty();
+	}
+	
 	@CheckForNull
 	public Country getCountry() {
 		return country;
@@ -73,28 +78,43 @@ public class Node {
 		this.country = country;
 	}
 	
-	public void setGarissoned(Unit garissoned) {
-		this.garissoned = garissoned;
-	}
-	
 	public void addArmyMovement(@Nonnull Node node) {
+		if (armyMovements.contains(node) || node == this)
+			return;
 		armyMovements.add(node);
+		node.addArmyMovement(this);
 	}
 	
 	public void addFleetMovement(@Nonnull Node node) {
+		if (fleetMovements.contains(node) || node == this)
+			return;
 		fleetMovements.add(node);
-	}
-	
-	public void addAction(@Nonnull Action action) {
-		resolvingActions.add(action);
-	}
-	
-	public void removeAction(@Nonnull Action action) {
-		resolvingActions.remove(action);
+		node.addFleetMovement(node);
 	}
 	
 	@Override
 	public String toString() {
-		return "Node["+name+"]";
+		return "Node[" + name + "]";
+	}
+	
+	@Override
+	public Node clone() {
+		try {
+			return (Node) super.clone();
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
+	}
+	
+	void addAction(@Nonnull Action action) {
+		resolvingActions.add(action);
+	}
+	
+	void removeAction(@Nonnull Action action) {
+		resolvingActions.remove(action);
+	}
+	
+	void setGarissoned(Unit garissoned) {
+		this.garissoned = garissoned;
 	}
 }

@@ -3,8 +3,10 @@ package csci4511.ui;
 import csci4511.engine.data.Board;
 import csci4511.engine.data.Node;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
+import edu.uci.ics.jung.algorithms.layout.SpringLayout;
 import edu.uci.ics.jung.graph.SparseGraph;
 import edu.uci.ics.jung.graph.SparseMultigraph;
+import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 
 import javax.swing.*;
@@ -44,47 +46,56 @@ public class DiplomacyUI {
         frame.setVisible(true);
     }
 
-    public static void showBoard(Board board, Dimension size) {
+    public static JFrame showBoard(Board board, Dimension size) {
         SparseGraph<Node, Integer> map = new SparseGraph<>();
         int i = 0;
 
+        board.getNodes().forEach(map::addVertex);
         for (Node node : board.getNodes()) {
-            map.addVertex(node);
-
             for (Node armyNode : node.getArmyMovements()) {
-                if (!map.containsVertex(armyNode)) {
-                    map.addVertex(armyNode);
-                }
-                if (map.findEdge(node, armyNode) == null) {
-                    map.addEdge(i++, node, armyNode);
-                }
+				map.addEdge(i++, node, armyNode);
             }
 
             for (Node fleetNode : node.getFleetMovements()) {
-                if (!map.containsVertex(fleetNode)) {
-                    map.addVertex(fleetNode);
-                }
-                if (map.findEdge(node, fleetNode) == null) {
-                    map.addEdge(i++, node, fleetNode);
-                }
+				map.addEdge(i++, node, fleetNode, EdgeType.UNDIRECTED);
             }
         }
 
-        FRLayout<Node, Integer> layout = new FRLayout<>(map);
+        SpringLayout<Node, Integer> layout = new SpringLayout<>(map);
         layout.setSize(size);
         layout.initialize();
-
-        while (!layout.done()) {
-            layout.step();
-        }
-
-        VisualizationViewer<Node, Integer> vs = new VisualizationViewer<>(layout);
+//        layout.setAttractionMultiplier(1);
+//        layout.setRepulsionMultiplier(1);
+//        layout.setMaxIterations(10000);
+//
+//        while (!layout.done()) {
+//            layout.step();
+//        }
+//		layout.setRepulsionRange(100);
+		layout.setForceMultiplier(0.25);
+		layout.setStretch(0.7);
+//		AtomicInteger force = new AtomicInteger(1);
+//		new Thread(() -> {
+//			while (true) {
+//				layout.setForceMultiplier(Math.sin(force.incrementAndGet() / 10.0 / Math.PI));
+//				for (int iter = 0; iter < 1000; iter++)
+//					layout.step();
+//				Delay.sleepMilli(10);
+//				Log.t("Testing FM %d", force.get());
+//			}
+//		}).start();
+		for (int iter = 0; iter < 1000; iter++)
+			layout.step();
+	
+		VisualizationViewer<Node, Integer> vs = new VisualizationViewer<>(layout);
         vs.setPreferredSize(size);
+        vs.setVertexToolTipTransformer(Node::getName);
 
         JFrame frame = new JFrame("Map View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(vs);
         frame.pack();
         frame.setVisible(true);
+        return frame;
     }
 }
