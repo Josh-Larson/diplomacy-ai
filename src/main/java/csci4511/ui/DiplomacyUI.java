@@ -3,11 +3,12 @@ package csci4511.ui;
 import csci4511.engine.data.Board;
 import csci4511.engine.data.Node;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
-import edu.uci.ics.jung.algorithms.layout.SpringLayout;
+import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
 import edu.uci.ics.jung.graph.SparseGraph;
 import edu.uci.ics.jung.graph.SparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 
 import javax.swing.*;
 import java.awt.*;
@@ -61,7 +62,7 @@ public class DiplomacyUI {
             }
         }
 
-        SpringLayout<Node, Integer> layout = new SpringLayout<>(map);
+        ISOMLayout<Node, Integer> layout = new ISOMLayout<>(map);
         layout.setSize(size);
         layout.initialize();
 //        layout.setAttractionMultiplier(1);
@@ -72,8 +73,8 @@ public class DiplomacyUI {
 //            layout.step();
 //        }
 //		layout.setRepulsionRange(100);
-		layout.setForceMultiplier(0.25);
-		layout.setStretch(0.7);
+//		layout.setForceMultiplier(0.25);
+//		layout.setStretch(0.7);
 //		AtomicInteger force = new AtomicInteger(1);
 //		new Thread(() -> {
 //			while (true) {
@@ -84,12 +85,14 @@ public class DiplomacyUI {
 //				Log.t("Testing FM %d", force.get());
 //			}
 //		}).start();
-		for (int iter = 0; iter < 1000; iter++)
-			layout.step();
+//		for (int iter = 0; iter < 1000; iter++)
+//			layout.step();
 	
 		VisualizationViewer<Node, Integer> vs = new VisualizationViewer<>(layout);
         vs.setPreferredSize(size);
         vs.setVertexToolTipTransformer(Node::getName);
+        vs.getRenderContext().setEdgeShapeTransformer(EdgeShape.line(map));
+        vs.getRenderContext().setVertexFillPaintTransformer(DiplomacyUI::getNodeColor);
 
         JFrame frame = new JFrame("Map View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -97,5 +100,11 @@ public class DiplomacyUI {
         frame.pack();
         frame.setVisible(true);
         return frame;
+    }
+
+    private static Paint getNodeColor(Node node) {
+        if (node.getHomeCountry() == null) {
+            return Color.blue;
+        } else return Color.red;
     }
 }
