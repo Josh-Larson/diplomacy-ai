@@ -93,6 +93,7 @@ public class DiplomacyUI {
         vs.setVertexToolTipTransformer(Node::getName);
         vs.getRenderContext().setEdgeShapeTransformer(EdgeShape.line(map));
         vs.getRenderContext().setVertexFillPaintTransformer(DiplomacyUI::getNodeColor);
+        vs.getRenderContext().setVertexLabelTransformer(Node::getName);
 
         JFrame frame = new JFrame("Map View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -104,7 +105,25 @@ public class DiplomacyUI {
 
     private static Paint getNodeColor(Node node) {
         if (node.getHomeCountry() == null) {
-            return Color.blue;
-        } else return Color.red;
+            return node.getArmyMovements().isEmpty() ? Color.blue : Color.lightGray;
+        } else {
+            switch (node.getHomeCountry()) {
+                case ENGLAND:
+                    return Color.magenta;
+                case FRANCE:
+                    return Color.cyan;
+                case GERMANY:
+                    return Color.black;
+                case RUSSIA:
+                    return Color.white;
+                case ITALY:
+                    return Color.green;
+                case AUSTRIA:
+                    return Color.red;
+                case TURKEY:
+                    return Color.yellow;
+            }
+        }
+        return Color.orange;
     }
 }
