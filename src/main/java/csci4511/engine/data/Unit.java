@@ -84,7 +84,8 @@ public class Unit implements Cloneable {
 	public Unit clone() {
 		try {
 			Unit u = (Unit) super.clone();
-			u.action = u.action.clone();
+			if (u.action != null)
+				u.action = u.action.clone();
 			return u;
 		} catch (CloneNotSupportedException e) {
 			return null;

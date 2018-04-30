@@ -128,17 +128,17 @@ public class TestResolutionEngine {
 	}
 	
 	private static void resolve(Board board) {
-		long start, end, total = 0;
-		for (int i = 0; i < 1000000; i++) {
-			Board cloned = board.clone();
-			start = System.nanoTime();
-			ResolutionEngine.resolve(cloned);
-			end = System.nanoTime();
-			total += end - start;
-		}
-		System.out.printf("%d nanoseconds%n", total/1000000);
-//		ResolutionEngine.resolve(board);
-//		assertBoardResolved(board);
+//		long start, end, total = 0;
+//		for (int i = 0; i < 1000000; i++) {
+//			Board cloned = board.clone();
+//			start = System.nanoTime();
+//			ResolutionEngine.resolve(cloned);
+//			end = System.nanoTime();
+//			total += end - start;
+//		}
+//		System.out.printf("%d nanoseconds%n", total/1000000);
+		ResolutionEngine.resolve(board);
+		assertBoardResolved(board);
 	}
 	
 	private static void assertBoardResolved(Board board) {

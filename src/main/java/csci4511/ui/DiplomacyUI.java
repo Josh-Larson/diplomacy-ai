@@ -9,6 +9,7 @@ import edu.uci.ics.jung.graph.SparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
+import me.joshlarson.jlcommon.concurrency.Delay;
 
 import javax.swing.*;
 import java.awt.*;
@@ -46,6 +47,14 @@ public class DiplomacyUI {
         frame.pack();
         frame.setVisible(true);
     }
+    
+    public static void showBoardAndWait(Board board, Dimension size) {
+    	JFrame frame = showBoard(board, size);
+    	while (frame.isShowing()) {
+    		if (!Delay.sleepMilli(50))
+    			break;
+		}
+	}
 
     public static JFrame showBoard(Board board, Dimension size) {
         SparseGraph<Node, Integer> map = new SparseGraph<>();

@@ -1,8 +1,10 @@
 package csci4511;
 
-import csci4511.engine.data.*;
+import csci4511.engine.data.Board;
+import csci4511.engine.data.Country;
+import csci4511.engine.data.Unit;
+import csci4511.engine.data.UnitType;
 import csci4511.ui.DiplomacyUI;
-import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.control.SafeMain;
 import me.joshlarson.jlcommon.log.Log;
 import me.joshlarson.jlcommon.log.log_wrapper.ConsoleLogWrapper;
@@ -14,21 +16,23 @@ import java.util.List;
 public class Diplomacy {
 	
 	public static void main(String [] args) {
-//		SafeMain.main("diplomacy", Diplomacy::run);
-		run();
+		SafeMain.main("diplomacy", Diplomacy::run);
 	}
 	
 	private static void run() {
 		Log.addWrapper(new ConsoleLogWrapper());
-		Board test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
-//		setupNodes(test);
-//		setupSupplyCenters(test);
-//		Board test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/5-node-board.txt"));
-//		createArmy(test, Country.ENGLAND, "1");
-		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1920, 1080));
-//		while (frame.isVisible()) {
-//			Delay.sleepMilli(100);
-//		}
+		Board test;
+		{
+			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
+			setupNodes(test);
+			setupSupplyCenters(test);
+		}
+		{
+//			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/5-node-board.txt"));
+//			createArmy(test, Country.ENGLAND, "1");
+//			test.getNode("1").setCountry(Country.ENGLAND);
+		}
+		DiplomacyUI.showBoardAndWait(test, new Dimension(1920, 1080));
 	}
 	
 	private static void setupNodes(Board b) {

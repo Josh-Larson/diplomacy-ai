@@ -56,6 +56,13 @@ public class Node implements Cloneable {
 	}
 	
 	@Nonnull
+	public List<Node> getMovements() {
+		List<Node> movements = new ArrayList<>(armyMovements);
+		movements.addAll(fleetMovements);
+		return movements;
+	}
+	
+	@Nonnull
 	public List<Action> getResolvingActions() {
 		return resolvingActions;
 	}
