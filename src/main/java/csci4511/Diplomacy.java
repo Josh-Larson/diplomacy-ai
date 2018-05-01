@@ -2,10 +2,7 @@ package csci4511;
 
 import csci4511.algorithms.Algorithm;
 import csci4511.algorithms.SimpleHeuristic;
-import csci4511.engine.data.Board;
-import csci4511.engine.data.Country;
-import csci4511.engine.data.Unit;
-import csci4511.engine.data.UnitType;
+import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
 import csci4511.engine.resolve.ResolutionEngine;
 import csci4511.ui.DiplomacyUI;
@@ -44,11 +41,19 @@ public class Diplomacy {
 //			actions = new SimpleHeuristic().determineActions(test, Country.ENGLAND, EnumSet.of(Country.ENGLAND));
 		}
 		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1920, 1080));
+		long turn = 0;
 		while (frame.isShowing()) {
 			if (!Delay.sleepMilli(1000))
 				break;
 			runAlgorithm(test, algorithm);
 			frame.repaint();
+			if (++turn % 2 == 0) {
+				for (Node n : test.getNodes()) {
+					Unit unit = n.getGarissoned();
+					if (unit != null)
+						n.setCountry(unit.getCountry());
+				}
+			}
 		}
 	}
 	
