@@ -20,16 +20,19 @@ public abstract class MonteCarlo<S, R> {
         data.state = state;
         data.onGraph = true;
         long time = System.currentTimeMillis();
+        StateNode lastNode = null;
         while (System.currentTimeMillis() - time < runTimeMillis) {
             StateNode currentNode = data;
             Log.i("Selecting");
             while (currentNode.onGraph) {
+                lastNode = currentNode;
                 currentNode = select(currentNode);
             }
             Log.i("Playing out");
             StateNode resultNode = playOut(currentNode);
-            expand(currentNode, resultNode);
+            expand(lastNode, resultNode);
             Log.i("Backpropogating");
+            currentNode = lastNode;
             while (currentNode.parent != null) {
                 backpropogate(currentNode);
                 currentNode = currentNode.parent;
