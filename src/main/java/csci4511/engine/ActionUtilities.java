@@ -38,18 +38,28 @@ public class ActionUtilities {
 		return (int) node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).map(Unit::getCountry).filter(c -> !alliances.contains(c)).count();
 	}
 	
+	public static List<List<Action>> createActionsSupportable(Action action, EnumSet<Country> alliances, int maxDepth) {
+		List<Unit> supportable = getFriendlySupportable(action.getUnit(), action.getDestination(), alliances);
+		List<List<Action>> actions = new ArrayList<>();
+		List<Action> baseAction = Collections.singletonList(action);
+		actions.add(baseAction);
+		createRecursiveSupport(action, actions, baseAction, supportable, supportable.size(), 0, maxDepth);
+		actions.sort(Comparator.<List>comparingInt(List::size).reversed()::compare);
+		return actions;
+	}
+	
 	public static List<List<Action>> createActionsSupportable(Action action, EnumSet<Country> alliances) {
 		List<Unit> supportable = getFriendlySupportable(action.getUnit(), action.getDestination(), alliances);
 		List<List<Action>> actions = new ArrayList<>();
-		createRecursiveSupport(action, actions, Collections.singletonList(action), supportable, supportable.size(), 0);
+		createRecursiveSupport(action, actions, Collections.singletonList(action), supportable, supportable.size(), 0, Integer.MAX_VALUE);
 		return actions;
 	}
 	
 	static List<Unit> getFriendlySupportable(Unit core, Node node, EnumSet<Country> alliances) {
-		return node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u != core).filter(u -> alliances.contains(u.getCountry())).collect(Collectors.toList());
+		return node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u != core).filter(u -> alliances.contains(u.getCountry())).filter(u -> u.getMovementLocations().contains(node)).collect(Collectors.toList());
 	}
 	
-	private static void createRecursiveSupport(Action action, List<List<Action>> actions, List<Action> currentActions, List<Unit> supportable, int remainingDepth, int startIndex) {
+	private static void createRecursiveSupport(Action action, List<List<Action>> actions, List<Action> currentActions, List<Unit> supportable, int remainingDepth, int startIndex, int maxDepth) {
 		if (remainingDepth <= 0)
 			return;
 		supportLoop:
@@ -61,8 +71,11 @@ public class ActionUtilities {
 			}
 			List<Action> recurseActions = new ArrayList<>(currentActions);
 			recurseActions.add(new ActionSupport(unit, action));
-			actions.add(recurseActions);
-			createRecursiveSupport(action, actions, recurseActions, supportable, remainingDepth - 1, i + 1);
+			if (recurseActions.size() <= maxDepth)
+				actions.add(recurseActions);
+			else
+				break;
+			createRecursiveSupport(action, actions, recurseActions, supportable, remainingDepth - 1, i + 1, maxDepth);
 		}
 	}
 	

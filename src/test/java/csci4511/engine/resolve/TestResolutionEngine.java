@@ -41,6 +41,15 @@ public class TestResolutionEngine {
 	}
 	
 	@Test
+	public void testBasicSwapBounce() {
+		Board board = createBoard("1,ENGLAND;5,GERMANY", "A,1,5;A,5,1");
+		List<Unit> units = board.getUnits();
+		resolve(board);
+		Assert.assertSame(board.getNode("1"), units.get(0).getNode());
+		Assert.assertSame(board.getNode("5"), units.get(1).getNode());
+	}
+	
+	@Test
 	public void testBasicMove() {
 		Board board = createBoard("1,ENGLAND;4,GERMANY", "A,1,5;H,4,4");
 		List<Unit> units = board.getUnits();
@@ -68,6 +77,17 @@ public class TestResolutionEngine {
 		Assert.assertSame(board.getNode("2"), units.get(1).getNode());
 		Assert.assertSame(board.getNode("3"), units.get(2).getNode());
 		Assert.assertSame(board.getNode("4"), units.get(3).getNode());
+	}
+	
+	@Test
+	public void testBasicSwapSupportBounce() {
+		Board board = createBoard("1,ENGLAND;2,ENGLAND;3,GERMANY;5,GERMANY", "A,1,5;S,2,1;A,5,1;S,3,5");
+		List<Unit> units = board.getUnits();
+		resolve(board);
+		Assert.assertSame(board.getNode("1"), units.get(0).getNode());
+		Assert.assertSame(board.getNode("2"), units.get(1).getNode());
+		Assert.assertSame(board.getNode("3"), units.get(2).getNode());
+		Assert.assertSame(board.getNode("5"), units.get(3).getNode());
 	}
 	
 	@Test

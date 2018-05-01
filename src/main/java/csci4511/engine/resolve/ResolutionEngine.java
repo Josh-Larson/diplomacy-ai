@@ -6,6 +6,8 @@ import csci4511.engine.data.Unit;
 import csci4511.engine.data.action.Action;
 import csci4511.engine.data.action.ActionAttack;
 import csci4511.engine.data.action.ActionSupport;
+import csci4511.engine.data.action.ActionType;
+import me.joshlarson.jlcommon.log.Log;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -14,14 +16,71 @@ public class ResolutionEngine {
 	
 	public static Map<Unit, List<Node>> resolve(Board board) {
 		Map<Unit, List<Node>> retreats = new HashMap<>();
-		resolveInvalid(board);
 		verifyActions(board);
+		resolveInvalid(board);
+		int loop = 0;
 		while (!isResolved(board)) {
 			resolve(retreats, board);
 			retreats.keySet().forEach(board::removeUnit);
+			if (loop++ >= 10) {
+				Log.d("Unresolved:");
+				for (Unit u : board.getUnits()) {
+					Action a = u.getAction();
+					if (a == null)
+						continue;
+					Log.d("    Action: %s  SRC=%s  DST=%s", a, a.getStart(), a.getDestination());
+				}
+				System.exit(0);
+			}
 		}
 		resolveRetreats(board, retreats);
 		return retreats;
+	}
+	
+	static void resolveSameEdge(Node src) {
+		if (src.getGarissoned() == null)
+			return;
+		Action srcAction = src.getGarissoned().getAction();
+		if (srcAction == null || srcAction.getType() != ActionType.ATTACK)
+			return;
+		
+		Node dst = srcAction.getDestination();
+		if (dst.getGarissoned() == null)
+			return;
+		Action dstAction = dst.getGarissoned().getAction();
+		if (dstAction == null || dstAction.getType() != ActionType.ATTACK)
+			return;
+		
+		if (dstAction.getDestination() == src) {
+			int srcStrength = 0, dstStrength = 0;
+			List<Action> actions = new ArrayList<>();
+			actions.add(srcAction);
+			actions.add(dstAction);
+			for (Action srcSupportAction : dst.getResolvingActions()) {
+				if (srcSupportAction instanceof ActionSupport && ((ActionSupport) srcSupportAction).getAction() == srcAction) {
+					srcStrength++;
+					actions.add(srcSupportAction);
+				}
+			}
+			for (Action dstSupportAction : src.getResolvingActions()) {
+				if (dstSupportAction instanceof ActionSupport && ((ActionSupport) dstSupportAction).getAction() == dstAction) {
+					dstStrength++;
+					actions.add(dstSupportAction);
+				}
+			}
+			Action winner = null;
+			if (srcStrength > dstStrength) {
+				executeAction(srcAction, dst);
+				winner = srcAction;
+			} else if (srcStrength < dstStrength) {
+				executeAction(dstAction, src);
+				winner = dstAction;
+			}
+			for (Action action : actions) {
+				if (action != winner)
+					action.getUnit().clearAction();
+			}
+		}
 	}
 	
 	static void resolveUndisputed(Action a, Node n) {
@@ -81,6 +140,7 @@ public class ResolutionEngine {
 		for (Node n : board.getNodes()) {
 			List<Action> actions = n.getResolvingActions();
 			
+			resolveSameEdge(n);
 			switch (actions.size()) {
 				case 0:
 					break;

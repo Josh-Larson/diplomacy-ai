@@ -150,10 +150,17 @@ public class DiplomacyUI {
     }
 
     private static Color getNodeColor(Node node) {
-        if (node.getHomeCountry() == null) {
-            return node.getArmyMovements().isEmpty() ? Color.blue : Color.lightGray;
-        }
-        return getCountryColor(node.getHomeCountry());
+    	if (node.getArmyMovements().isEmpty())
+    		return Color.blue;
+        Country country = node.getCountry();
+        if (country == null) {
+        	Unit unit = node.getGarissoned();
+        	if (unit != null)
+        		country = unit.getCountry();
+        	else
+        		return Color.lightGray;
+		}
+        return getCountryColor(country);
     }
 
     private static Color getCountryColor(Country country) {

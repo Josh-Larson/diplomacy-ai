@@ -101,7 +101,9 @@ public class Node implements Cloneable {
 	
 	@Override
 	public String toString() {
-		return "Node[" + name + "]";
+		if (garissoned != null)
+			return "Node[" + name + "  GAR="+garissoned.getCountry()+"]";
+		return "Node["+name+"]";
 	}
 	
 	@Override

@@ -42,8 +42,19 @@ public class Unit implements Cloneable {
 	}
 	
 	public void setNode(@Nonnull Node node) {
+		Node prev = this.node;
+		if (prev != null && prev.getGarissoned() == this)
+			prev.setGarissoned(null);
 		this.node = node;
 		node.setGarissoned(this);
+	}
+	
+	public void setAction(Action action) {
+		if (this.action != null)
+			this.action.getDestination().removeAction(this.action);
+		this.action = action;
+		if (action != null)
+			action.getDestination().addAction(action);
 	}
 	
 	public void clearAction() {
@@ -90,13 +101,5 @@ public class Unit implements Cloneable {
 		} catch (CloneNotSupportedException e) {
 			return null;
 		}
-	}
-	
-	private void setAction(Action action) {
-		if (this.action != null)
-			this.action.getDestination().removeAction(this.action);
-		this.action = action;
-		if (action != null)
-			action.getDestination().addAction(action);
 	}
 }
