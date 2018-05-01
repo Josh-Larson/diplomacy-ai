@@ -1,7 +1,7 @@
 package csci4511.ui;
 
-import csci4511.engine.data.Board;
-import csci4511.engine.data.Node;
+import csci4511.engine.data.*;
+import csci4511.engine.data.action.Action;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
 import edu.uci.ics.jung.graph.SparseGraph;
@@ -13,6 +13,7 @@ import me.joshlarson.jlcommon.concurrency.Delay;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 
 public class DiplomacyUI {
 
@@ -100,9 +101,16 @@ public class DiplomacyUI {
 		VisualizationViewer<Node, Integer> vs = new VisualizationViewer<>(layout);
         vs.setPreferredSize(size);
         vs.setVertexToolTipTransformer(Node::getName);
+
         vs.getRenderContext().setEdgeShapeTransformer(EdgeShape.line(map));
+
+        vs.getRenderContext().setVertexShapeTransformer(DiplomacyUI::getNodeShape);
         vs.getRenderContext().setVertexFillPaintTransformer(DiplomacyUI::getNodeColor);
-        vs.getRenderContext().setVertexLabelTransformer(Node::getName);
+
+        vs.getRenderContext().setVertexStrokeTransformer(DiplomacyUI::getNodeStroke);
+        vs.getRenderContext().setVertexDrawPaintTransformer(DiplomacyUI::getNodeStrokeColor);
+
+        vs.getRenderContext().setVertexLabelTransformer(DiplomacyUI::getNodeLabel);
 
         JFrame frame = new JFrame("Map View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -112,27 +120,67 @@ public class DiplomacyUI {
         return frame;
     }
 
-    private static Paint getNodeColor(Node node) {
-        if (node.getHomeCountry() == null) {
-            return node.getArmyMovements().isEmpty() ? Color.blue : Color.lightGray;
-        } else {
-            switch (node.getHomeCountry()) {
-                case ENGLAND:
-                    return Color.magenta;
-                case FRANCE:
-                    return Color.cyan;
-                case GERMANY:
-                    return Color.black;
-                case RUSSIA:
-                    return Color.white;
-                case ITALY:
-                    return Color.green;
-                case AUSTRIA:
-                    return Color.red;
-                case TURKEY:
-                    return Color.yellow;
+    private static String getNodeLabel(Node node) {
+        String label = node.getName();
+        Unit unit = node.getGarissoned();
+        if (unit != null) {
+            label += " " + (unit.getType() == UnitType.ARMY ? "A" : "F");
+            Action action = unit.getAction();
+            if (action != null) {
+                label += " " + action.toString()
+                        .replaceAll("Action", "")
+                        .replaceAll("Unit", "")
+                        .replaceAll("Node", "")
+                        .replaceAll("\\[\\w*?@", "[");
             }
         }
-        return Color.orange;
+        return label;
+    }
+
+    private static Stroke getNodeStroke(Node node) {
+        if (node.getGarissoned() == null)
+            return new BasicStroke(1);
+        return new BasicStroke(5);
+    }
+
+    private static Color getNodeStrokeColor(Node node) {
+        if (node.getGarissoned() == null)
+            return Color.orange;
+        return getCountryColor(node.getGarissoned().getCountry()).darker();
+    }
+
+    private static Color getNodeColor(Node node) {
+        if (node.getHomeCountry() == null) {
+            return node.getArmyMovements().isEmpty() ? Color.blue : Color.lightGray;
+        }
+        return getCountryColor(node.getHomeCountry());
+    }
+
+    private static Color getCountryColor(Country country) {
+        switch (country) {
+            case ENGLAND:
+                return Color.magenta;
+            case FRANCE:
+                return Color.cyan;
+            case GERMANY:
+                return Color.black;
+            case RUSSIA:
+                return Color.white;
+            case ITALY:
+                return Color.green;
+            case AUSTRIA:
+                return Color.red;
+            case TURKEY:
+                return Color.yellow;
+            default:
+                return Color.orange;
+        }
+    }
+
+    private static Shape getNodeShape(Node node) {
+        if (node.isSupply()) {
+            return new StarPolygon(0, 0, 15, 7, 5, -Math.PI / 10);
+        }
+        return new Ellipse2D.Double(-10, -10, 20, 20);
     }
 }
