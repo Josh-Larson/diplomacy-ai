@@ -1,5 +1,6 @@
 package csci4511.engine;
 
+import csci4511.engine.data.Board;
 import csci4511.engine.data.Country;
 import csci4511.engine.data.Node;
 import csci4511.engine.data.Unit;
@@ -20,6 +21,23 @@ public class ActionUtilities {
 			nodes.add(u.getNode());
 		}
 		return nodes;
+	}
+	
+	public static List<List<Action>> getActions(Board board, EnumSet<Country> alliances) {
+		List<Unit> units = board.getUnits(alliances);
+		List<List<Action>> actions = new ArrayList<>();
+		for (Node node : getMovementNodes(units)) {
+			for (Unit unit : units) {
+				int strength = ActionUtilities.getEnemyNearby(node, alliances);
+				if (strength <= 0)
+					strength = 1; // Min strength
+				if (!unit.getMovementLocations().contains(node))
+					continue;
+				boolean maintain = node == unit.getNode();
+				actions.addAll(createActionsSupportable(maintain ? new ActionHold(unit) : new ActionAttack(unit, node), alliances, maintain ? strength : strength+1));
+			}
+		}
+		return actions;
 	}
 	
 	public static List<List<Action>> getActions(Unit unit, EnumSet<Country> alliances) {
