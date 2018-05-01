@@ -9,17 +9,17 @@ abstract class MassiveMonteCarlo<S, R>(var runTimeMillis: Int = 30000,
     val map: HashMap<S, StateNode<S, R>> = HashMap()
     private var lastState: StateNode<S, R>? = null
 
-    fun step(state: S) {
+    fun step(state: S): R? {
         var node = map[state]
         if (node == null) {
             node = StateNode(state, parent = lastState)
             map.put(state, node)
         }
         lastState = node
-        monteCarlo(node)
+        return monteCarlo(node)
     }
 
-    private fun monteCarlo(rootNode: StateNode<S, R>) {
+    private fun monteCarlo(rootNode: StateNode<S, R>): R? {
         val startTime = System.currentTimeMillis()
         while (System.currentTimeMillis() - startTime < runTimeMillis) {
             var currentNode = rootNode
@@ -39,6 +39,13 @@ abstract class MassiveMonteCarlo<S, R>(var runTimeMillis: Int = 30000,
                 currentNode = currentNode.parent!!
             }
         }
+
+        var best: StateNode<S, R>? = null
+        for (node in rootNode.children) {
+            if (node.score > (if (best != null) best.score else 0f))
+                best = node
+        }
+        return if (best != null) best.results else null
     }
 
     protected open fun select(node: StateNode<S, R>): StateNode<S, R> {

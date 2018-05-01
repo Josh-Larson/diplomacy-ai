@@ -14,8 +14,9 @@ plugins {
 	id 'application'
 	id 'java'
 	id 'idea'
-	id 'kotlin'
 }
+
+apply plugin: 'kotlin'
 
 mainClassName = 'csci4511'
 sourceCompatibility = 8
