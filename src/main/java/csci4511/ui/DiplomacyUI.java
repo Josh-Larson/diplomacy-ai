@@ -2,21 +2,33 @@ package csci4511.ui;
 
 import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
+import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
+import edu.uci.ics.jung.algorithms.layout.StaticLayout;
 import edu.uci.ics.jung.graph.SparseGraph;
 import edu.uci.ics.jung.graph.SparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
+import edu.uci.ics.jung.visualization.VisualizationServer.Paintable;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
+import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import me.joshlarson.jlcommon.concurrency.Delay;
+import me.joshlarson.jlcommon.log.Log;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class DiplomacyUI {
 
+    private static boolean REAL_UI = true;
+    
     private static Node a = new Node("A", true, null);
     private static Node b = new Node("B", true, null);
     private static Node c = new Node("C", true, null);
@@ -62,60 +74,50 @@ public class DiplomacyUI {
         int i = 0;
 
         board.getNodes().forEach(map::addVertex);
-        for (Node node : board.getNodes()) {
-            for (Node armyNode : node.getArmyMovements()) {
-				map.addEdge(i++, node, armyNode);
-            }
+        if (!REAL_UI) {
+			for (Node node : board.getNodes()) {
+				for (Node armyNode : node.getArmyMovements()) {
+					map.addEdge(i++, node, armyNode);
+				}
+		
+				for (Node fleetNode : node.getFleetMovements()) {
+					map.addEdge(i++, node, fleetNode, EdgeType.UNDIRECTED);
+				}
+			}
+		}
 
-            for (Node fleetNode : node.getFleetMovements()) {
-				map.addEdge(i++, node, fleetNode, EdgeType.UNDIRECTED);
-            }
-        }
-
-        ISOMLayout<Node, Integer> layout = new ISOMLayout<>(map);
+        AbstractLayout<Node, Integer> layout = REAL_UI ? createStaticLayout(map, size, board) : new ISOMLayout<>(map);
         layout.setSize(size);
         layout.initialize();
-//        layout.setAttractionMultiplier(1);
-//        layout.setRepulsionMultiplier(1);
-//        layout.setMaxIterations(10000);
-//
-//        while (!layout.done()) {
-//            layout.step();
-//        }
-//		layout.setRepulsionRange(100);
-//		layout.setForceMultiplier(0.25);
-//		layout.setStretch(0.7);
-//		AtomicInteger force = new AtomicInteger(1);
-//		new Thread(() -> {
-//			while (true) {
-//				layout.setForceMultiplier(Math.sin(force.incrementAndGet() / 10.0 / Math.PI));
-//				for (int iter = 0; iter < 1000; iter++)
-//					layout.step();
-//				Delay.sleepMilli(10);
-//				Log.t("Testing FM %d", force.get());
-//			}
-//		}).start();
-//		for (int iter = 0; iter < 1000; iter++)
-//			layout.step();
 	
 		VisualizationViewer<Node, Integer> vs = new VisualizationViewer<>(layout);
-        vs.setPreferredSize(size);
+        vs.setSize(size);
         vs.setVertexToolTipTransformer(Node::getName);
-
-        vs.getRenderContext().setEdgeShapeTransformer(EdgeShape.line(map));
-
-        vs.getRenderContext().setVertexShapeTransformer(DiplomacyUI::getNodeShape);
+	
+        if (REAL_UI) {
+			try {
+				Image img = ImageIO.read(DiplomacyUI.class.getResourceAsStream("/map.gif"));
+				vs.addPreRenderPaintable(new Paintable() {
+					public void paint(Graphics g) { g.drawImage(img, 0, 0, (int) size.getWidth(), (int) size.getHeight(), null); }
+					public boolean useTransform() { return false; }
+				});
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			vs.getRenderContext().setVertexShapeTransformer(DiplomacyUI::getRealUINodeShape);
+		} else {
+			vs.getRenderContext().setEdgeShapeTransformer(EdgeShape.line(map));
+			vs.getRenderContext().setVertexLabelTransformer(DiplomacyUI::getNodeLabel);
+			vs.getRenderContext().setVertexShapeTransformer(DiplomacyUI::getNodeShape);
+		}
         vs.getRenderContext().setVertexFillPaintTransformer(DiplomacyUI::getNodeColor);
-
         vs.getRenderContext().setVertexStrokeTransformer(DiplomacyUI::getNodeStroke);
         vs.getRenderContext().setVertexDrawPaintTransformer(DiplomacyUI::getNodeStrokeColor);
-
-        vs.getRenderContext().setVertexLabelTransformer(DiplomacyUI::getNodeLabel);
-
+        
         JFrame frame = new JFrame("Map View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(vs);
-        frame.pack();
+        frame.setSize(size);
+		frame.getContentPane().add(vs);
         frame.setVisible(true);
         return frame;
     }
@@ -183,6 +185,20 @@ public class DiplomacyUI {
                 return Color.orange;
         }
     }
+    
+    private static Shape getRealUINodeShape(Node node) {
+    	Unit garissoned = node.getGarissoned();
+    	if (garissoned == null) {
+    		if (node.isSupply())
+				return new Ellipse2D.Double(-10, -10, 20, 20);
+    		else
+				return new Ellipse2D.Double(0, 0, 1, 1);
+		}
+    	if (garissoned.getType() == UnitType.ARMY)
+			return new StarPolygon(0, 0, 15, 7, 5, -Math.PI / 10);
+		else
+			return new Ellipse2D.Double(-15, -15, 30, 30);
+	}
 
     private static Shape getNodeShape(Node node) {
         if (node.isSupply()) {
@@ -190,4 +206,41 @@ public class DiplomacyUI {
         }
         return new Ellipse2D.Double(-10, -10, 20, 20);
     }
+	
+    private static AbstractLayout<Node, Integer> createStaticLayout(SparseGraph<Node, Integer> graph, Dimension size, Board board) {
+    	StaticLayout<Node, Integer> layout = new StaticLayout<>(graph, size);
+    	try (BufferedReader reader = new BufferedReader(new InputStreamReader(DiplomacyUI.class.getResourceAsStream("/diplomacy-locations.txt")))) {
+    		String line;
+    		while ((line = reader.readLine()) != null) {
+    			line = line.trim();
+    			if (line.isEmpty())
+    				continue;
+    			String [] parts = line.split(",", 3);
+    			layout.setLocation(board.getNode(parts[0]), Double.parseDouble(parts[1]) * size.getWidth(), Double.parseDouble(parts[2]) * size.getHeight());
+			}
+		} catch (IOException e) {
+			Log.w(e);
+		}
+		return layout;
+	}
+	
+	private static class ImagePanel extends JComponent {
+		
+		private final Image image;
+		private final Dimension size;
+		
+		public ImagePanel(Image image, Dimension size) {
+			this.image = image;
+			this.size = size;
+			setSize((int) size.getWidth(), (int) size.getHeight());
+		}
+		
+		@Override
+		protected void paintComponent(Graphics g) {
+			super.paintComponent(g);
+			g.drawImage(image, 0, 0, getWidth(), getHeight(), Color.WHITE,  this);
+		}
+		
+	}
+	
 }
