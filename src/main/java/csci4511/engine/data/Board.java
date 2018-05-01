@@ -13,10 +13,20 @@ public class Board implements Cloneable {
 	
 	private final Map<String, Node> nodes;
 	private final List<Unit> units;
+	private int turn;
 	
 	public Board() {
 		this.nodes = new HashMap<>();
 		this.units = new ArrayList<>();
+		this.turn = 0;
+	}
+	
+	public void incrementTurn() {
+		turn++;
+	}
+	
+	public int getTurn() {
+		return turn;
 	}
 	
 	@Nonnull

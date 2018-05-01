@@ -32,29 +32,28 @@ public class Diplomacy {
 //			setupSupplyCenters(test);
 			setupDefaultBoard(test);
 		}
-		{
-//			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/5-node-board.txt"));
-//			createArmy(test, Country.ENGLAND, "1");
-//			createArmy(test, Country.GERMANY, "4");
-//			test.getNode("1").setCountry(Country.ENGLAND);
-//			test.getNode("4").setCountry(Country.GERMANY);
-//			actions = new SimpleHeuristic().determineActions(test, Country.ENGLAND, EnumSet.of(Country.ENGLAND));
-		}
-		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1920, 1080));
-		long turn = 0;
+		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1152, 965));
 		while (frame.isShowing()) {
-			if (!Delay.sleepMilli(1000))
+			if (!Delay.sleepMilli(100))
 				break;
+			test.incrementTurn();
 			runAlgorithm(test, algorithm);
 			frame.repaint();
-			if (++turn % 2 == 0) {
+			if (test.getTurn() % 2 == 0) {
 				for (Node n : test.getNodes()) {
 					Unit unit = n.getGarissoned();
 					if (unit != null)
 						n.setCountry(unit.getCountry());
 				}
 			}
+			if (test.getTurn() > 100)
+				break;
 		}
+		Delay.sleepMilli(10000);
+	}
+	
+	private static void runTraining() {
+		
 	}
 	
 	private static void runAlgorithm(Board board, Algorithm algorithm) {

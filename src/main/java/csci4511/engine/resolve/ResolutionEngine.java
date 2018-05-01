@@ -22,7 +22,13 @@ public class ResolutionEngine {
 		while (!isResolved(board)) {
 			resolve(retreats, board);
 			retreats.keySet().forEach(board::removeUnit);
-			if (loop++ >= 10) {
+			for (Unit unit : board.getUnits()) {
+				if (unit.getAction() != null) {
+					unit.clearAction();
+					break;
+				}
+			}
+			if (loop++ >= 100) {
 				Log.d("Unresolved:");
 				for (Unit u : board.getUnits()) {
 					Action a = u.getAction();
@@ -68,13 +74,16 @@ public class ResolutionEngine {
 					actions.add(dstSupportAction);
 				}
 			}
+			boolean validStandoff = src.getGarissoned().getCountry() != dst.getGarissoned().getCountry();
 			Action winner = null;
-			if (srcStrength > dstStrength) {
-				executeAction(srcAction, dst);
-				winner = srcAction;
-			} else if (srcStrength < dstStrength) {
-				executeAction(dstAction, src);
-				winner = dstAction;
+			if (validStandoff) {
+				if (srcStrength > dstStrength) {
+					executeAction(srcAction, dst);
+					winner = srcAction;
+				} else if (srcStrength < dstStrength) {
+					executeAction(dstAction, src);
+					winner = dstAction;
+				}
 			}
 			for (Action action : actions) {
 				if (action != winner)
@@ -102,13 +111,16 @@ public class ResolutionEngine {
 		Action winner = getWinningAction(actions);
 		if (winner != null) {
 			Unit garissoned = n.getGarissoned();
-			if (garissoned != null) { // Displaced
-				List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
-				possibilities.remove(n);
-				possibilities.remove(winner.getStart());
-				retreats.put(garissoned, possibilities);
+			boolean validDisplacement = garissoned == null || garissoned.getCountry() != winner.getUnit().getCountry();
+			if (validDisplacement) {
+				if (garissoned != null) {
+					List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
+					possibilities.remove(n);
+					possibilities.remove(winner.getStart());
+					retreats.put(garissoned, possibilities);
+				}
+				executeAction(winner, n);
 			}
-			executeAction(winner, n);
 		}
 		for (Action a : actions) {
 			a.getUnit().clearAction();
@@ -189,9 +201,8 @@ public class ResolutionEngine {
 	
 	private static void resolveInvalidAttack(ActionAttack a) {
 		Unit garissoned = a.getDestination().getGarissoned();
-		if (garissoned == null)
+		if (garissoned == null || garissoned.getAction() == null)
 			return;
-		assert garissoned.getAction() != null : "invariant of the initial resolve engine";
 		switch (garissoned.getAction().getType()) {
 			case SUPPORT:
 			case CONVOY:
