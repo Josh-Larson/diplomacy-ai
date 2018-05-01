@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class ActionUtilities {
 	
-	public static Set<Node> getBorderNodes(List<Unit> units) {
+	public static Set<Node> getMovementNodes(List<Unit> units) {
 		Set<Node> nodes = new HashSet<>();
 		for (Unit u : units) {
 			nodes.addAll(u.getMovementLocations());

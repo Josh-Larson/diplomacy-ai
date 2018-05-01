@@ -1,5 +1,6 @@
 package csci4511;
 
+import csci4511.algorithms.SimpleHeuristic;
 import csci4511.engine.data.Board;
 import csci4511.engine.data.Country;
 import csci4511.engine.data.Unit;
@@ -11,6 +12,7 @@ import me.joshlarson.jlcommon.log.log_wrapper.ConsoleLogWrapper;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.EnumSet;
 import java.util.List;
 
 public class Diplomacy {
@@ -23,16 +25,17 @@ public class Diplomacy {
 		Log.addWrapper(new ConsoleLogWrapper());
 		Board test;
 		{
-			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
-			setupNodes(test);
-			setupSupplyCenters(test);
+//			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
+//			setupNodes(test);
+//			setupSupplyCenters(test);
 		}
 		{
-//			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/5-node-board.txt"));
-//			createArmy(test, Country.ENGLAND, "1");
-//			test.getNode("1").setCountry(Country.ENGLAND);
+			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/5-node-board.txt"));
+			createArmy(test, Country.ENGLAND, "1");
+			test.getNode("1").setCountry(Country.ENGLAND);
 		}
-		DiplomacyUI.showBoardAndWait(test, new Dimension(1920, 1080));
+		new SimpleHeuristic().determineActions(test, Country.ENGLAND, EnumSet.of(Country.ENGLAND));
+//		DiplomacyUI.showBoardAndWait(test, new Dimension(1920, 1080));
 	}
 	
 	private static void setupNodes(Board b) {

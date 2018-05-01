@@ -33,6 +33,16 @@ public class Board implements Cloneable {
 		return units;
 	}
 	
+	@Nonnull
+	public List<Unit> getUnits(EnumSet<Country> alliances) {
+		List<Unit> allianceUnits = new ArrayList<>();
+		for (Unit unit : units) {
+			if (alliances.contains(unit.getCountry()))
+				allianceUnits.add(unit);
+		}
+		return allianceUnits;
+	}
+	
 	public void addNode(@Nonnull Node node) {
 		Node prev = this.nodes.putIfAbsent(node.getName(), node);
 		if (prev != null)
