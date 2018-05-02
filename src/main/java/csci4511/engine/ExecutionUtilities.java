@@ -4,6 +4,7 @@ import csci4511.algorithms.Algorithm;
 import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
 import csci4511.engine.resolve.ResolutionEngine;
+import me.joshlarson.jlcommon.log.Log;
 
 import java.util.*;
 
@@ -59,30 +60,16 @@ public class ExecutionUtilities {
 			}
 			ResolutionEngine.resolve(board);
 			if (board.getTurn() % 2 == 0) {
-				for (Node n : board.getNodes()) {
-					if (!n.isSupply())
-						continue;
-					Unit unit = n.getGarissoned();
-					if (unit != null)
-						n.setCountry(unit.getCountry());
-				}
 				addUnits(board);
 			}
 	}
 	
 	private static void addUnits(Board board) {
 		Random random = new Random();
+		board.updateSupply();
 		for (Country country : COUNTRIES) {
-			int supplyCenters = 0;
-			int unitCount = 0;
-			for (Node n : board.getNodes()) {
-				if (n.isSupply() && n.getCountry() == country)
-					supplyCenters++;
-			}
-			for (Unit u : board.getUnits()) {
-				if (u.getCountry() == country)
-					unitCount++;
-			}
+			int supplyCenters = board.getSupplyCount(country);
+			int unitCount = board.getUnitCount(country);
 			
 			int add = supplyCenters - unitCount;
 			if (add < 0) {
@@ -94,10 +81,10 @@ public class ExecutionUtilities {
 					}
 				}
 			} else {
-				for (Node n : board.getNodes()) {
+				for (Node n : board.getHomeNodes(country)) {
 					if (add <= 0)
 						break;
-					if (n.isSupply() && n.getHomeCountry() == country && n.getGarissoned() == null) {
+					if (n.isSupply() && n.getCountry() == country && n.getGarissoned() == null) {
 						Unit u = new Unit(random.nextBoolean() ? UnitType.ARMY : UnitType.FLEET, country);
 						u.setNode(n);
 						board.addUnit(u);

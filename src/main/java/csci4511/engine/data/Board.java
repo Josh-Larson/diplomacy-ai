@@ -8,17 +8,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class Board implements Cloneable {
+public class Board {
 	
 	private final Map<String, Node> nodes;
+	private final EnumMap<Country, CountryState> countryState;
 	private final List<Unit> units;
 	private int turn;
 	
 	public Board() {
 		this.nodes = new HashMap<>();
+		this.countryState = new EnumMap<>(Country.class);
 		this.units = new ArrayList<>();
 		this.turn = 0;
+		for (Country country : Country.values()) {
+			countryState.put(country, new CountryState());
+		}
 	}
 	
 	public void incrementTurn() {
@@ -34,6 +40,19 @@ public class Board implements Cloneable {
 		return nodes.values();
 	}
 	
+	@Nonnull
+	public Collection<Node> getHomeNodes(Country country) {
+		return countryState.get(country).getHomeNodes();
+	}
+	
+	public int getUnitCount(Country country) {
+		return countryState.get(country).getUnitCount();
+	}
+	
+	public int getSupplyCount(Country country) {
+		return countryState.get(country).getSupplyCount();
+	}
+	
 	public Node getNode(String name) {
 		return nodes.get(name);
 	}
@@ -41,6 +60,15 @@ public class Board implements Cloneable {
 	@Nonnull
 	public List<Unit> getUnits() {
 		return units;
+	}
+	
+	public List<Unit> getUnits(Country country) {
+		List<Unit> countryUnits = new ArrayList<>();
+		for (Unit unit : units) {
+			if (unit.getCountry() == country)
+				countryUnits.add(unit);
+		}
+		return countryUnits;
 	}
 	
 	@Nonnull
@@ -57,25 +85,34 @@ public class Board implements Cloneable {
 		Node prev = this.nodes.putIfAbsent(node.getName(), node);
 		if (prev != null)
 			throw new IllegalArgumentException("Node already in board! " + prev);
+		Country home = node.getHomeCountry();
+		if (home != null) {
+			CountryState state = countryState.get(home);
+			state.addHomeNode(node);
+			if (node.isSupply())
+				state.incrementSupply();
+		}
 	}
 	
 	public void addUnit(@Nonnull Unit unit) {
 		this.units.add(unit);
+		countryState.get(unit.getCountry()).incrementUnit();
 	}
 	
 	public void removeUnit(@Nonnull Unit unit) {
 		this.units.remove(unit);
+		countryState.get(unit.getCountry()).decrementUnit();
 	}
 	
-	@Override
-	public Board clone() {
-		try {
-			Board b = (Board) super.clone();
-			nodes.replaceAll((key, node) -> node.clone());
-			units.replaceAll(Unit::clone);
-			return b;
-		} catch (CloneNotSupportedException e) {
-			return null;
+	public void updateSupply() {
+		for (Node node : nodes.values()) {
+			Unit garissoned = node.getGarissoned();
+			if (node.isSupply() && garissoned != null && garissoned.getCountry() != node.getCountry()) {
+				countryState.get(garissoned.getCountry()).incrementSupply();
+				if (node.getCountry() != null)
+					countryState.get(node.getCountry()).decrementSupply();
+				node.setCountry(garissoned.getCountry());
+			}
 		}
 	}
 	
@@ -113,7 +150,6 @@ public class Board implements Cloneable {
 				if (parts.length != 2)
 					throw new RuntimeException("Invalid connection line");
 				
-				Log.t("Connecting %s from %s to %s", army ? "A" : "F", parts[0], parts[1]);
 				if (army)
 					board.getNode(parts[0]).addArmyMovement(board.getNode(parts[1]));
 				else
@@ -123,6 +159,52 @@ public class Board implements Cloneable {
 		} catch (RuntimeException | IOException e) {
 			throw new RuntimeException("Line: " + lineNum, e);
 		}
+	}
+	
+	private static class CountryState {
+		
+		private final List<Node> homeNodes;
+		private final AtomicInteger unitCount;
+		private final AtomicInteger supplyCount;
+		
+		public CountryState() {
+			this.homeNodes = new ArrayList<>();
+			this.unitCount = new AtomicInteger(0);
+			this.supplyCount = new AtomicInteger(0);
+		}
+		
+		public void addHomeNode(Node node) {
+			homeNodes.add(node);
+		}
+		
+		public void incrementUnit() {
+			unitCount.incrementAndGet();
+		}
+		
+		public void decrementUnit() {
+			unitCount.decrementAndGet();
+		}
+		
+		public void incrementSupply() {
+			supplyCount.incrementAndGet();
+		}
+		
+		public void decrementSupply() {
+			supplyCount.decrementAndGet();
+		}
+		
+		public Collection<Node> getHomeNodes() {
+			return homeNodes;
+		}
+		
+		public int getUnitCount() {
+			return unitCount.get();
+		}
+		
+		public int getSupplyCount() {
+			return supplyCount.get();
+		}
+		
 	}
 	
 }

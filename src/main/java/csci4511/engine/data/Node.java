@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class Node implements Cloneable {
+public class Node {
 	
 	private final String name;
 	private final boolean supply;
@@ -104,15 +104,6 @@ public class Node implements Cloneable {
 		if (garissoned != null)
 			return "Node[" + name + "  GAR="+garissoned.getCountry()+"]";
 		return "Node["+name+"]";
-	}
-	
-	@Override
-	public Node clone() {
-		try {
-			return (Node) super.clone();
-		} catch (CloneNotSupportedException e) {
-			return null;
-		}
 	}
 	
 	void addAction(@Nonnull Action action) {

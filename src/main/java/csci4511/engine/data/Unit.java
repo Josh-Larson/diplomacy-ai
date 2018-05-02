@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Objects;
 
-public class Unit implements Cloneable {
+public class Unit {
 	
 	private final UnitType type;
 	private final Country country;
@@ -91,15 +91,4 @@ public class Unit implements Cloneable {
 		return "Unit[" + country + "@" + node.getName() + "]";
 	}
 	
-	@Override
-	public Unit clone() {
-		try {
-			Unit u = (Unit) super.clone();
-			if (u.action != null)
-				u.action = u.action.clone();
-			return u;
-		} catch (CloneNotSupportedException e) {
-			return null;
-		}
-	}
 }
