@@ -26,15 +26,16 @@ public class ActionUtilities {
 	public static List<List<Action>> getActions(Board board, EnumSet<Country> alliances) {
 		List<Unit> units = board.getUnits(alliances);
 		List<List<Action>> actions = new ArrayList<>();
-		for (Node node : getMovementNodes(units)) {
-			for (Unit unit : units) {
-				int strength = ActionUtilities.getEnemyNearby(node, alliances);
+		for (Unit unit : units) {
+			{
+				int strength = ActionUtilities.getEnemyNearby(unit.getNode(), alliances);
 				if (strength <= 0)
 					strength = 1; // Min strength
-				if (!unit.getMovementLocations().contains(node))
-					continue;
-				boolean maintain = node == unit.getNode();
-				actions.addAll(createActionsSupportable(maintain ? new ActionHold(unit) : new ActionAttack(unit, node), alliances, maintain ? strength : strength+1));
+				actions.addAll(createActionsSupportable(new ActionHold(unit), alliances, strength));
+			}
+			for (Node node : unit.getMovementLocations()) {
+				int strength = ActionUtilities.getEnemyNearby(node, alliances);
+				actions.addAll(createActionsSupportable(new ActionAttack(unit, node), alliances, strength+1));
 			}
 		}
 		return actions;
