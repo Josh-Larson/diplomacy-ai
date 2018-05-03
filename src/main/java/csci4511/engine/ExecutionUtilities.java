@@ -30,7 +30,6 @@ public class ExecutionUtilities {
 			}
 			homeSupply.put(country, home);
 		}
-		Random random = new Random();
 		while (board.getTurn() < maxTurns) {
 			playIteration(board, algorithms);
 			if (board.getTurn() % 2 != 0)

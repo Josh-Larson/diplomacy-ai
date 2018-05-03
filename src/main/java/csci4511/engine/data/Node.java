@@ -96,7 +96,7 @@ public class Node {
 		if (fleetMovements.contains(node) || node == this)
 			return;
 		fleetMovements.add(node);
-		node.addFleetMovement(node);
+		node.addFleetMovement(this);
 	}
 	
 	@Override
