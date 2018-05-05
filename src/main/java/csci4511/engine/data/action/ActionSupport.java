@@ -27,7 +27,7 @@ public class ActionSupport extends Action {
 	
 	@Override
 	public String toString() {
-		return "ActionSupport["+getUnit()+" to "+action+"]";
+		return "ActionSupport["+getUnit().getCountry()+"@"+getStart().getName()+" to "+action+"]";
 	}
 	
 }

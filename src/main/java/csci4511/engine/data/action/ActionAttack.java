@@ -21,7 +21,7 @@ public class ActionAttack extends Action {
 	
 	@Override
 	public String toString() {
-		return "ActionAttack["+getUnit()+" to "+destination+"]";
+		return "ActionAttack["+getUnit().getCountry()+" "+getStart().getName()+" to "+destination.getName()+"]";
 	}
 	
 }

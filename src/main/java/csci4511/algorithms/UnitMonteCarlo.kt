@@ -77,7 +77,7 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
                     TODO("Needs clonable boards and units")
                     val boardClone: Board = state.board//.clone()
                     val actionUnit: Unit = boardUnit//.clone()
-                    actionUnit.action = action[0]
+//                    actionUnit.action = action[0]
                     boardClone.addUnit(actionUnit)
                     val newChild = StateNode(boardClone, remainingUnits, unit, action[0])
                     newChild.parent = state

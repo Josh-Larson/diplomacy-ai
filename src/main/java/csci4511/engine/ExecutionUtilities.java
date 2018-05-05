@@ -4,7 +4,6 @@ import csci4511.algorithms.Algorithm;
 import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
 import csci4511.engine.resolve.ResolutionEngine;
-import me.joshlarson.jlcommon.log.Log;
 
 import java.util.*;
 
@@ -21,22 +20,17 @@ public class ExecutionUtilities {
 	
 	public static EnumMap<Country, Integer> play(Board board, EnumMap<Country, Algorithm> algorithms, int maxTurns) {
 		EnumMap<Country, Integer> results = new EnumMap<>(Country.class);
-		EnumMap<Country, List<Node>> homeSupply = new EnumMap<>(Country.class);
-		for (Country country : COUNTRIES) {
-			List<Node> home = new ArrayList<>();
-			for (Node n : board.getNodes()) {
-				if (n.isSupply() && n.getHomeCountry() == country)
-					home.add(n);
-			}
-			homeSupply.put(country, home);
-		}
+		ResolutionEngine engine = new ResolutionEngine();
 		while (board.getTurn() < maxTurns) {
-			playIteration(board, algorithms);
+			playIteration(engine, board, algorithms);
 			if (board.getTurn() % 2 != 0)
 				continue;
 			
 			results.clear();
 			boolean completed = false;
+			for (Country country : COUNTRIES) {
+				results.put(country, 0);
+			}
 			for (Node n : board.getNodes()) {
 				if (!n.isSupply() || n.getCountry() == null)
 					continue;
@@ -51,16 +45,19 @@ public class ExecutionUtilities {
 	}
 	
 	public static void playIteration(Board board, EnumMap<Country, Algorithm> algorithms) {
+		playIteration(new ResolutionEngine(), board, algorithms);
+	}
+	
+	public static void playIteration(ResolutionEngine engine, Board board, EnumMap<Country, Algorithm> algorithms) {
 		board.incrementTurn();
-			for (int i = 0; i < 7; i++) {
-				for (Action action : algorithms.get(COUNTRIES[i]).determineActions(board, COUNTRIES[i], ALLIANCES[i])) {
-					action.getUnit().setAction(action);
-				}
-			}
-			ResolutionEngine.resolve(board);
-			if (board.getTurn() % 2 == 0) {
-				addUnits(board);
-			}
+		List<Action> actions = new ArrayList<>();
+		for (int i = 0; i < 7; i++) {
+			actions.addAll(algorithms.get(COUNTRIES[i]).determineActions(board, COUNTRIES[i], ALLIANCES[i]));
+		}
+		engine.resolve(board, actions);
+		if (board.getTurn() % 2 == 0) {
+			addUnits(board);
+		}
 	}
 	
 	private static void addUnits(Board board) {

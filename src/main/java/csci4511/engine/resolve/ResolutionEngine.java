@@ -3,57 +3,56 @@ package csci4511.engine.resolve;
 import csci4511.engine.data.Board;
 import csci4511.engine.data.Node;
 import csci4511.engine.data.Unit;
-import csci4511.engine.data.action.Action;
-import csci4511.engine.data.action.ActionAttack;
-import csci4511.engine.data.action.ActionSupport;
-import csci4511.engine.data.action.ActionType;
-import me.joshlarson.jlcommon.log.Log;
+import csci4511.engine.data.action.*;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ResolutionEngine {
 	
-	public static Map<Unit, List<Node>> resolve(Board board) {
-		Map<Unit, List<Node>> retreats = new HashMap<>();
-		verifyActions(board);
-		resolveInvalid(board);
-		int loop = 0;
-		while (!isResolved(board)) {
-			resolve(retreats, board);
-			retreats.keySet().forEach(board::removeUnit);
-			for (Unit unit : board.getUnits()) {
-				if (unit.getAction() != null) {
-					unit.clearAction();
-					break;
-				}
-			}
-			if (loop++ >= 100) {
-				Log.d("Unresolved:");
-				for (Unit u : board.getUnits()) {
-					Action a = u.getAction();
-					if (a == null)
-						continue;
-					Log.d("    Action: %s  SRC=%s  DST=%s", a, a.getStart(), a.getDestination());
-				}
-				System.exit(0);
-			}
-		}
-		resolveRetreats(board, retreats);
-		return retreats;
+	private final Map<Node, List<Action>> resolvingActions;
+	private final Map<Unit, List<Node>> retreatPossibilities;
+	private final Map<Unit, Action> unitActions;
+	
+	public ResolutionEngine() {
+		this.resolvingActions = new HashMap<>();
+		this.retreatPossibilities = new HashMap<>();
+		this.unitActions = new HashMap<>();
 	}
 	
-	static void resolveSameEdge(Node src) {
+	public void resolve(Board board, Collection<Action> actions) {
+		this.resolvingActions.clear();
+		this.retreatPossibilities.clear();
+		this.unitActions.clear();
+		for (Action a : actions) {
+			Node dst = a.getDestination();
+			this.resolvingActions.computeIfAbsent(dst, n -> new CopyOnWriteArrayList<>()).add(a);
+			this.unitActions.put(a.getUnit(), a);
+		}
+		for (Unit u : board.getUnits()) {
+			unitActions.computeIfAbsent(u, ActionHold::new);
+		}
+		resolveInvalid(board);
+		for (int i = 0; i < 5; i++) {
+			resolve(board);
+			retreatPossibilities.keySet().forEach(board::removeUnit);
+			resolveRetreats(board);
+			unitActions.clear();
+		}
+	}
+	
+	private void resolveSameEdge(Node src) {
 		if (src.getGarissoned() == null)
 			return;
-		Action srcAction = src.getGarissoned().getAction();
+		Action srcAction = getUnitAction(src.getGarissoned());
 		if (srcAction == null || srcAction.getType() != ActionType.ATTACK)
 			return;
 		
 		Node dst = srcAction.getDestination();
 		if (dst.getGarissoned() == null)
 			return;
-		Action dstAction = dst.getGarissoned().getAction();
+		Action dstAction = getUnitAction(dst.getGarissoned());
 		if (dstAction == null || dstAction.getType() != ActionType.ATTACK)
 			return;
 		
@@ -62,72 +61,33 @@ public class ResolutionEngine {
 			List<Action> actions = new ArrayList<>();
 			actions.add(srcAction);
 			actions.add(dstAction);
-			for (Action srcSupportAction : dst.getResolvingActions()) {
+			for (Action srcSupportAction : getResolvingActions(dst)) {
 				if (srcSupportAction instanceof ActionSupport && ((ActionSupport) srcSupportAction).getAction() == srcAction) {
 					srcStrength++;
 					actions.add(srcSupportAction);
 				}
 			}
-			for (Action dstSupportAction : src.getResolvingActions()) {
+			for (Action dstSupportAction : getResolvingActions(src)) {
 				if (dstSupportAction instanceof ActionSupport && ((ActionSupport) dstSupportAction).getAction() == dstAction) {
 					dstStrength++;
 					actions.add(dstSupportAction);
 				}
 			}
 			boolean validStandoff = src.getGarissoned().getCountry() != dst.getGarissoned().getCountry();
-			Action winner = null;
 			if (validStandoff) {
 				if (srcStrength > dstStrength) {
 					executeAction(srcAction, dst);
-					winner = srcAction;
 				} else if (srcStrength < dstStrength) {
 					executeAction(dstAction, src);
-					winner = dstAction;
 				}
 			}
-			for (Action action : actions) {
-				if (action != winner)
-					action.getUnit().clearAction();
-			}
+			resolvingActions.get(src).removeAll(actions);
+			resolvingActions.get(dst).removeAll(actions);
+			unitActions.values().removeAll(actions);
 		}
 	}
 	
-	static void resolveUndisputed(Action a, Node n) {
-		switch (a.getType()) {
-			case ATTACK:
-				if (n.getGarissoned() != null) {
-					if (n.getGarissoned().getAction() == null) { // Final move
-						a.getUnit().setActionHold();
-					}
-					break;
-				}
-			case HOLD:
-				executeAction(a, n);
-				break;
-		}
-	}
-	
-	static void resolveDisputed(Map<Unit, List<Node>> retreats, List<Action> actions, Node n) {
-		Action winner = getWinningAction(actions);
-		if (winner != null) {
-			Unit garissoned = n.getGarissoned();
-			boolean validDisplacement = garissoned == null || garissoned.getCountry() != winner.getUnit().getCountry();
-			if (validDisplacement) {
-				if (garissoned != null) {
-					List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
-					possibilities.remove(n);
-					possibilities.remove(winner.getStart());
-					retreats.put(garissoned, possibilities);
-				}
-				executeAction(winner, n);
-			}
-		}
-		for (Action a : actions) {
-			a.getUnit().clearAction();
-		}
-	}
-	
-	static Action getWinningAction(List<Action> actions) {
+	private Action getWinningAction(List<Action> actions) {
 		Map<Action, Integer> actionStrengths = new HashMap<>();
 		int max = Integer.MIN_VALUE;
 		for (Action a : actions) {
@@ -148,9 +108,9 @@ public class ResolutionEngine {
 		return actionStrengths.size() != 1 ? null : actionStrengths.keySet().iterator().next();
 	}
 	
-	private static void resolve(Map<Unit, List<Node>> retreats, Board board) {
+	private void resolve(Board board) {
 		for (Node n : board.getNodes()) {
-			List<Action> actions = n.getResolvingActions();
+			List<Action> actions = getResolvingActions(n);
 			
 			resolveSameEdge(n);
 			switch (actions.size()) {
@@ -160,33 +120,60 @@ public class ResolutionEngine {
 					resolveUndisputed(actions.get(0), n);
 					break;
 				default:
-					resolveDisputed(retreats, actions, n);
+					resolveDisputed(actions, n);
 					break;
 			}
 		}
 	}
 	
-	/** Ensures all units have an action */
-	private static void verifyActions(Board board) {
-		for (Unit u : board.getUnits()) {
-			if (u.getAction() == null) {
-				u.setActionHold();
+	private void resolveUndisputed(Action a, Node n) {
+		switch (a.getType()) {
+			case ATTACK: {
+				Unit garissoned = n.getGarissoned();
+				if (garissoned != null) {
+					if (!unitActions.containsKey(garissoned)) { // Final move
+						setActionHold(a.getUnit());
+					}
+					break;
+				}
 			}
+			case HOLD:
+				executeAction(a, n);
+				break;
 		}
 	}
 	
-	private static void resolveInvalid(Board board) {
+	private void resolveDisputed(List<Action> actions, Node n) {
+		Action winner = getWinningAction(actions);
+		if (winner != null) {
+			Unit garissoned = n.getGarissoned();
+			boolean validDisplacement = garissoned == null || garissoned.getCountry() != winner.getUnit().getCountry();
+			if (validDisplacement) {
+				if (garissoned != null) {
+					List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
+					possibilities.remove(n);
+					possibilities.remove(winner.getStart());
+					retreatPossibilities.put(garissoned, possibilities);
+				}
+				executeAction(winner, n);
+			}
+		}
+		unitActions.values().removeAll(actions);
+		resolvingActions.remove(n);
+	}
+	
+	private void resolveInvalid(Board board) {
 		// Support/Convoy based
 		for (Node n : board.getNodes()) {
-			for (Action a : n.getResolvingActions()) {
+			for (Action a : getResolvingActions(n)) {
 				if (a instanceof ActionAttack)
 					resolveInvalidAttack((ActionAttack) a);
 			}
 		}
 	}
 	
-	private static void resolveRetreats(Board board, Map<Unit, List<Node>> retreats) {
-		for (Entry<Unit, List<Node>> retreat : retreats.entrySet()) {
+	private void resolveRetreats(Board board) {
+		for (Entry<Unit, List<Node>> retreat : retreatPossibilities.entrySet()) {
 			List<Node> possibilities = retreat.getValue();
 			possibilities.removeIf(p -> p.getGarissoned() != null);
 			switch (possibilities.size()) {
@@ -196,38 +183,46 @@ public class ResolutionEngine {
 					break;
 			}
 		}
-		retreats.entrySet().removeIf(e -> e.getValue().size() < 2);
+		retreatPossibilities.entrySet().removeIf(e -> e.getValue().size() < 2);
 	}
 	
-	private static void resolveInvalidAttack(ActionAttack a) {
+	private void resolveInvalidAttack(ActionAttack a) {
 		Unit garissoned = a.getDestination().getGarissoned();
-		if (garissoned == null || garissoned.getAction() == null)
+		if (garissoned == null)
 			return;
-		switch (garissoned.getAction().getType()) {
+		Action garissonedAction = getUnitAction(garissoned);
+		if (garissonedAction == null)
+			return;
+		switch (garissonedAction.getType()) {
 			case SUPPORT:
 			case CONVOY:
-				if (garissoned.getAction().getDestination() == a.getUnit().getNode()) { // My action is invalid
-					a.getUnit().setActionHold();
+				if (garissonedAction.getDestination() == a.getUnit().getNode()) { // My action is invalid
+					setActionHold(a.getUnit());
 				} else { // Their action is invalid
-					garissoned.setActionHold();
+					setActionHold(garissoned);
 				}
 				break;
 		}
 	}
 	
-	private static boolean isResolved(Board board) {
-		for (Node n : board.getNodes()) {
-			if (!n.isResolved()) {
-				return false;
-			}
-		}
-		return true;
+	private void executeAction(Action a, Node destination) {
+		Unit u = a.getUnit();
+		u.setNode(destination);
+		unitActions.remove(u);
 	}
 	
-	private static void executeAction(Action a, Node destination) {
-		Unit u = a.getUnit();
-		u.clearAction();
-		u.setNode(destination);
+	private List<Action> getResolvingActions(Node n) {
+		return resolvingActions.getOrDefault(n, Collections.emptyList());
+	}
+	
+	private Action getUnitAction(Unit u) {
+		return unitActions.get(u);
+	}
+	
+	private void setActionHold(Unit u) {
+		Action prevAction = unitActions.put(u, new ActionHold(u));
+		if (prevAction != null)
+			resolvingActions.getOrDefault(prevAction.getDestination(), Collections.emptyList()).remove(prevAction);
 	}
 	
 }

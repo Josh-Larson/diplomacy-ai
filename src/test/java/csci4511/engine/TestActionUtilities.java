@@ -92,11 +92,20 @@ public class TestActionUtilities {
 		
 		Action action = new ActionHold(u1);
 		List<List<Action>> possibleActions = ActionUtilities.createActionsSupportable(action, EnumSet.of(Country.ENGLAND));
-		Assert.assertEquals(1, possibleActions.size());
-		Assert.assertEquals(2, possibleActions.get(0).size());
-		Assert.assertSame(action, possibleActions.get(0).get(0));
-		Assert.assertTrue(possibleActions.get(0).get(1) instanceof ActionSupport);
-		Assert.assertSame(action, ((ActionSupport) possibleActions.get(0).get(1)).getAction());
+		System.out.println(possibleActions);
+		Assert.assertEquals(2, possibleActions.size());
+		{
+			List<Action> chain = possibleActions.get(0);
+			Assert.assertEquals(1, chain.size());
+			Assert.assertSame(action, chain.get(0));
+		}
+		{
+			List<Action> chain = possibleActions.get(1);
+			Assert.assertEquals(2, chain.size());
+			Assert.assertSame(action, chain.get(0));
+			Assert.assertTrue(chain.get(1) instanceof ActionSupport);
+			Assert.assertSame(action, ((ActionSupport) chain.get(1)).getAction());
+		}
 	}
 	
 	@Test
@@ -113,23 +122,31 @@ public class TestActionUtilities {
 		
 		Action action = new ActionHold(u1);
 		List<List<Action>> possibleActions = ActionUtilities.createActionsSupportable(action, EnumSet.of(Country.ENGLAND));
-		Assert.assertEquals(3, possibleActions.size());
+		Assert.assertEquals(4, possibleActions.size());
 		{
-			Assert.assertEquals(2, possibleActions.get(0).size());
-			Assert.assertSame(u2, possibleActions.get(0).get(1).getUnit());
-			Assert.assertSame(action, ((ActionSupport) possibleActions.get(0).get(1)).getAction());
+			List<Action> chain = possibleActions.get(0);
+			Assert.assertEquals(1, chain.size());
+			Assert.assertSame(action, chain.get(0));
 		}
 		{
-			Assert.assertEquals(3, possibleActions.get(1).size());
-			Assert.assertSame(u2, possibleActions.get(1).get(1).getUnit());
-			Assert.assertSame(u3, possibleActions.get(1).get(2).getUnit());
-			Assert.assertSame(action, ((ActionSupport) possibleActions.get(1).get(1)).getAction());
-			Assert.assertSame(action, ((ActionSupport) possibleActions.get(1).get(2)).getAction());
+			List<Action> chain = possibleActions.get(1);
+			Assert.assertEquals(2, chain.size());
+			Assert.assertSame(u2, chain.get(1).getUnit());
+			Assert.assertSame(action, ((ActionSupport) chain.get(1)).getAction());
 		}
 		{
-			Assert.assertEquals(2, possibleActions.get(2).size());
-			Assert.assertSame(u3, possibleActions.get(2).get(1).getUnit());
-			Assert.assertSame(action, ((ActionSupport) possibleActions.get(2).get(1)).getAction());
+			List<Action> chain = possibleActions.get(2);
+			Assert.assertEquals(3, chain.size());
+			Assert.assertSame(u2, chain.get(1).getUnit());
+			Assert.assertSame(u3, chain.get(2).getUnit());
+			Assert.assertSame(action, ((ActionSupport) chain.get(1)).getAction());
+			Assert.assertSame(action, ((ActionSupport) chain.get(2)).getAction());
+		}
+		{
+			List<Action> chain = possibleActions.get(3);
+			Assert.assertEquals(2, chain.size());
+			Assert.assertSame(u3, chain.get(1).getUnit());
+			Assert.assertSame(action, ((ActionSupport) chain.get(1)).getAction());
 		}
 	}
 	

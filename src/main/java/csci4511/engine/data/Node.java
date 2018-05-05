@@ -1,12 +1,9 @@
 package csci4511.engine.data;
 
-import csci4511.engine.data.action.Action;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Node {
 	
@@ -15,7 +12,7 @@ public class Node {
 	private final Country homeCountry;
 	private final List<Node> armyMovements;
 	private final List<Node> fleetMovements;
-	private final List<Action> resolvingActions;
+	private final List<Node> movements;
 	
 	private Country country;
 	private Unit garissoned;
@@ -26,8 +23,19 @@ public class Node {
 		this.homeCountry = homeCountry;
 		this.armyMovements = new ArrayList<>();
 		this.fleetMovements = new ArrayList<>();
-		this.resolvingActions = new CopyOnWriteArrayList<>();
+		this.movements = new ArrayList<>();
 		this.country = homeCountry;
+		this.garissoned = null;
+	}
+	
+	public Node(Node copy) {
+		this.name = copy.name;
+		this.supply = copy.supply;
+		this.homeCountry = copy.homeCountry;
+		this.armyMovements = new ArrayList<>();
+		this.fleetMovements = new ArrayList<>();
+		this.movements = new ArrayList<>();
+		this.country = copy.homeCountry;
 		this.garissoned = null;
 	}
 	
@@ -57,18 +65,7 @@ public class Node {
 	
 	@Nonnull
 	public List<Node> getMovements() {
-		List<Node> movements = new ArrayList<>(armyMovements);
-		movements.addAll(fleetMovements);
 		return movements;
-	}
-	
-	@Nonnull
-	public List<Action> getResolvingActions() {
-		return resolvingActions;
-	}
-	
-	public boolean isResolved() {
-		return resolvingActions.isEmpty();
 	}
 	
 	@CheckForNull
@@ -89,6 +86,8 @@ public class Node {
 		if (armyMovements.contains(node) || node == this)
 			return;
 		armyMovements.add(node);
+		if (!movements.contains(node))
+			movements.add(node);
 		node.addArmyMovement(this);
 	}
 	
@@ -96,6 +95,8 @@ public class Node {
 		if (fleetMovements.contains(node) || node == this)
 			return;
 		fleetMovements.add(node);
+		if (!movements.contains(node))
+			movements.add(node);
 		node.addFleetMovement(this);
 	}
 	
@@ -106,12 +107,14 @@ public class Node {
 		return "Node["+name+"]";
 	}
 	
-	void addAction(@Nonnull Action action) {
-		resolvingActions.add(action);
+	@Override
+	public int hashCode() {
+		return name.hashCode();
 	}
 	
-	void removeAction(@Nonnull Action action) {
-		resolvingActions.remove(action);
+	@Override
+	public boolean equals(Object o) {
+		return o == this;
 	}
 	
 	void setGarissoned(Unit garissoned) {

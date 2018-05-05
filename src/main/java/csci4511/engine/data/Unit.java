@@ -1,24 +1,30 @@
 package csci4511.engine.data;
 
-import csci4511.engine.data.action.*;
-
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Unit {
 	
+	private static final AtomicInteger GLOBAL_UNIT_ID = new AtomicInteger();
+	
+	private final int id;
 	private final UnitType type;
 	private final Country country;
 	private Node node;
-	private Action action;
 	
 	public Unit(@Nonnull UnitType type, @Nonnull Country country) {
+		this.id = GLOBAL_UNIT_ID.getAndIncrement();
 		this.type = type;
 		this.country = country;
 		this.node = null;
-		this.action = null;
+	}
+	
+	public Unit(Unit copy) {
+		this.id = GLOBAL_UNIT_ID.getAndIncrement();
+		this.type = copy.type;
+		this.country = copy.country;
+		this.node = null;
 	}
 	
 	@Nonnull
@@ -36,11 +42,6 @@ public class Unit {
 		return node;
 	}
 	
-	@CheckForNull
-	public Action getAction() {
-		return action;
-	}
-	
 	public void setNode(@Nonnull Node node) {
 		Node prev = this.node;
 		if (prev != null && prev.getGarissoned() == this)
@@ -49,46 +50,28 @@ public class Unit {
 		node.setGarissoned(this);
 	}
 	
-	public void setAction(Action action) {
-		if (this.action != null)
-			this.action.getDestination().removeAction(this.action);
-		this.action = action;
-		if (action != null)
-			action.getDestination().addAction(action);
-	}
-	
-	public void clearAction() {
-		setAction(null);
-	}
-	
-	public void setActionHold() {
-		setAction(new ActionHold(this));
-	}
-	
-	public void setActionAttack(@Nonnull Node node) {
-		setAction(new ActionAttack(this, node));
-	}
-	
-	public void setActionSupport(@Nonnull Unit unit) {
-		Action action = unit.getAction();
-		Objects.requireNonNull(action, "Invalid unit - does not have action");
-		setAction(new ActionSupport(this, action));
-	}
-	
-	public void setActionConvoy(@Nonnull Unit unit) {
-		Action action = unit.getAction();
-		Objects.requireNonNull(action, "Invalid unit - does not have action");
-		setAction(new ActionConvoy(this, action));
-	}
-	
 	@Nonnull
 	public List<Node> getMovementLocations() {
 		return type == UnitType.ARMY ? node.getArmyMovements() : node.getFleetMovements();
 	}
 	
+	public boolean canMoveTo(Node n) {
+		return type == UnitType.ARMY ? node.getArmyMovements().contains(n) : node.getFleetMovements().contains(n);
+	}
+	
 	@Override
 	public String toString() {
 		return "Unit[" + country + "@" + node.getName() + "]";
+	}
+	
+	@Override
+	public int hashCode() {
+		return id;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o == this;
 	}
 	
 }

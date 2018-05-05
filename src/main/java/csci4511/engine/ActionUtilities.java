@@ -4,10 +4,7 @@ import csci4511.engine.data.Board;
 import csci4511.engine.data.Country;
 import csci4511.engine.data.Node;
 import csci4511.engine.data.Unit;
-import csci4511.engine.data.action.Action;
-import csci4511.engine.data.action.ActionAttack;
-import csci4511.engine.data.action.ActionHold;
-import csci4511.engine.data.action.ActionSupport;
+import csci4511.engine.data.action.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,6 +30,7 @@ public class ActionUtilities {
 					strength = 1; // Min strength
 				actions.addAll(createActionsSupportable(new ActionHold(unit), alliances, strength));
 			}
+			createConvoyRoutes(unit, actions, alliances);
 			for (Node node : unit.getMovementLocations()) {
 				int strength = ActionUtilities.getEnemyNearby(node, alliances);
 				actions.addAll(createActionsSupportable(new ActionAttack(unit, node), alliances, strength+1));
@@ -50,11 +48,15 @@ public class ActionUtilities {
 	}
 	
 	public static int getFriendlyNearby(Node node, EnumSet<Country> alliances) {
-		return (int) node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).map(Unit::getCountry).filter(alliances::contains).count();
+		return (int) node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u.canMoveTo(node)).map(Unit::getCountry).filter(alliances::contains).count();
 	}
 	
 	public static int getEnemyNearby(Node node, EnumSet<Country> alliances) {
-		return (int) node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).map(Unit::getCountry).filter(c -> !alliances.contains(c)).count();
+		return (int) node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u.canMoveTo(node)).map(Unit::getCountry).filter(c -> !alliances.contains(c)).count();
+	}
+	
+	public static List<List<Action>> createActionsSupportable(Action action, EnumSet<Country> alliances) {
+		return createActionsSupportable(action, alliances, Integer.MAX_VALUE);
 	}
 	
 	public static List<List<Action>> createActionsSupportable(Action action, EnumSet<Country> alliances, int maxDepth) {
@@ -63,19 +65,11 @@ public class ActionUtilities {
 		List<Action> baseAction = Collections.singletonList(action);
 		actions.add(baseAction);
 		createRecursiveSupport(action, actions, baseAction, supportable, supportable.size(), 0, maxDepth);
-		actions.sort(Comparator.<List>comparingInt(List::size).reversed()::compare);
-		return actions;
-	}
-	
-	public static List<List<Action>> createActionsSupportable(Action action, EnumSet<Country> alliances) {
-		List<Unit> supportable = getFriendlySupportable(action.getUnit(), action.getDestination(), alliances);
-		List<List<Action>> actions = new ArrayList<>();
-		createRecursiveSupport(action, actions, Collections.singletonList(action), supportable, supportable.size(), 0, Integer.MAX_VALUE);
 		return actions;
 	}
 	
 	static List<Unit> getFriendlySupportable(Unit core, Node node, EnumSet<Country> alliances) {
-		return node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u != core).filter(u -> alliances.contains(u.getCountry())).filter(u -> u.getMovementLocations().contains(node)).collect(Collectors.toList());
+		return node.getMovements().stream().map(Node::getGarissoned).filter(Objects::nonNull).filter(u -> u != core).filter(u -> alliances.contains(u.getCountry())).filter(u -> u.canMoveTo(node)).collect(Collectors.toList());
 	}
 	
 	private static void createRecursiveSupport(Action action, List<List<Action>> actions, List<Action> currentActions, List<Unit> supportable, int remainingDepth, int startIndex, int maxDepth) {
@@ -95,6 +89,36 @@ public class ActionUtilities {
 			else
 				break;
 			createRecursiveSupport(action, actions, recurseActions, supportable, remainingDepth - 1, i + 1, maxDepth);
+		}
+	}
+	
+	private static void createConvoyRoutes(Unit unit, List<List<Action>> actions, EnumSet<Country> alliances) {
+		List<Unit> path = new ArrayList<>();
+		for (Node initialMovement : unit.getNode().getFleetMovements()) {
+			createConvoyRoutes(unit, actions, alliances, path, initialMovement);
+		}
+	}
+	
+	private static void createConvoyRoutes(Unit unit, List<List<Action>> actions, EnumSet<Country> alliances, List<Unit> path, Node current) {
+		if (!current.getArmyMovements().isEmpty()) {
+			if (!path.isEmpty()) {
+				List<Action> chain = new ArrayList<>();
+				Action move = new ActionAttack(unit, current);
+				chain.add(move);
+				for (Unit u : path)
+					chain.add(new ActionConvoy(u, move));
+				List<Unit> supportable = getFriendlySupportable(unit, current, alliances);
+				createRecursiveSupport(move, actions, chain, supportable, supportable.size(), 0, Integer.MAX_VALUE);
+			}
+			return; // Must be sea only
+		}
+		Unit garissoned = current.getGarissoned();
+		if (garissoned == null || !alliances.contains(garissoned.getCountry()) || path.contains(garissoned))
+			return; // Non-friendly or unoccupied
+		path = new ArrayList<>(path);
+		path.add(garissoned);
+		for (Node nextMovement : current.getFleetMovements()) {
+			createConvoyRoutes(unit, actions, alliances, path, nextMovement);
 		}
 	}
 	

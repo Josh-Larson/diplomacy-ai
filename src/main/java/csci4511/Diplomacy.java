@@ -1,219 +1,125 @@
 package csci4511;
 
 import csci4511.algorithms.Algorithm;
-import csci4511.algorithms.SimpleHeuristic;
-import csci4511.engine.data.*;
-import csci4511.engine.data.action.Action;
-import csci4511.engine.resolve.ResolutionEngine;
+import csci4511.algorithms.heuristic.SimpleHeuristic;
+import csci4511.engine.ExecutionUtilities;
+import csci4511.engine.data.Board;
+import csci4511.engine.data.Country;
 import csci4511.ui.DiplomacyUI;
 import me.joshlarson.jlcommon.concurrency.Delay;
 import me.joshlarson.jlcommon.control.SafeMain;
 import me.joshlarson.jlcommon.log.Log;
 import me.joshlarson.jlcommon.log.log_wrapper.ConsoleLogWrapper;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.EnumSet;
+import java.util.*;
 import java.util.List;
 
 public class Diplomacy {
 	
 	public static void main(String[] args) {
-		SafeMain.main("diplomacy", Diplomacy::run);
+		SafeMain.main("diplomacy", Diplomacy::runTraining);
 	}
 	
+	// Germany: 0.7883537936686507, 0.5669816179150046, -0.2957241494596424, 0.05922667445614062, -0.22627502227212262, -0.5024970476920462, -0.9685487780378496, -1.2142798046025092, -0.7289537161454374, 0.05915057876764081, 1.1078192885438924, 1.1641928347181476, -0.4412635372421468
 	private static void run() {
 		Log.addWrapper(new ConsoleLogWrapper());
-		Board test;
-		Algorithm algorithm = new SimpleHeuristic();
-		{
-			test = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
-//			setupNodes(test);
-//			setupSupplyCenters(test);
-			setupDefaultBoard(test);
-		}
+		Board test = BoardFactory.createDefaultBoard();
 		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1152, 965));
+		EnumMap<Country, Algorithm> algorithms = createAlgorithms();
+		algorithms.put(Country.ENGLAND, new SimpleHeuristic(new double[]{0.68, 0.21, -0.26, -0.405, -0.41, 0.575, -0.51, 0.55, 0.56, -0.19, -0.665, -0.07, -0.33, 0.49, 0.87}));
+		algorithms.put(Country.TURKEY, new SimpleHeuristic(new double[]{0.68, 0.21, -0.26, -0.405, -0.41, 0.575, -0.51, 0.55, 0.56, -0.19, -0.665, -0.07, -0.33, 0.49, 0.87}));
 		while (frame.isShowing()) {
-			if (!Delay.sleepMilli(100))
-				break;
-			test.incrementTurn();
-			runAlgorithm(test, algorithm);
+			// Empty
+			ExecutionUtilities.playIteration(test, algorithms);
 			frame.repaint();
-			if (test.getTurn() % 2 == 0) {
-				for (Node n : test.getNodes()) {
-					Unit unit = n.getGarissoned();
-					if (unit != null)
-						n.setCountry(unit.getCountry());
-				}
-			}
-			if (test.getTurn() > 100)
+			if (!Delay.sleepMilli(1000))
 				break;
 		}
-		Delay.sleepMilli(10000);
 	}
 	
 	private static void runTraining() {
+		int iterations = 10000;
+		int populationSize = 64;
 		
-	}
-	
-	private static void runAlgorithm(Board board, Algorithm algorithm) {
-		for (Country country : Country.values()) {
-			Log.d("Deciding actions for %s...", country);
-			for (Action action : algorithm.determineActions(board, country, EnumSet.of(country))) {
-				action.getUnit().setAction(action);
+		Log.addWrapper(new ConsoleLogWrapper());
+		List<Organism> population = new ArrayList<>(populationSize);
+		EnumMap<Country, Algorithm> algorithms = createAlgorithms();
+		for (int test = 0; test < populationSize; test++)
+			population.add(new Organism());
+		
+		BoardFactory factory = new BoardFactory();
+		factory.start();
+		Random random = new Random();
+		for (int iter = 0; iter < iterations; iter++) {
+			Log.t("Iteration %d  Top Performer: %.2f  Low Performer: %.2f  %s", iter, population.get(0).getScore(), population.get(populationSize-1).getScore(), population.get(0).algorithm);
+			for (int i = 0; i < populationSize/5; i++) {
+				population.set(random.nextInt(populationSize), population.get(i*2).pair(population.get(i*2+1)));
+			}
+			population.parallelStream().forEach(o -> o.evaluate(factory, algorithms));
+			Collections.sort(population);
+			Organism best = population.get(0);
+			if (iter % 10 == 0 && best.getScore() >= 0.95) {
+				for (Country country : Country.values()) {
+					algorithms.put(country, new SimpleHeuristic(best.algorithm));
+				}
 			}
 		}
-		Log.d("Resolving...");
-		ResolutionEngine.resolve(board);
-		Log.d("Resolved.");
+		factory.stop();
+		
+		Organism highest = population.get(0);
+		Log.d("Weights: (perf=%.1f) %s", highest.getScore(), highest.algorithm);
 	}
 	
-	private static void setupDefaultBoard(Board b) {
-		createArmy(b, Country.ENGLAND, "LVP");
-		createFleet(b, Country.ENGLAND, "EDN");
-		createFleet(b, Country.ENGLAND, "LDN");
-		b.getNode("LVP").setCountry(Country.ENGLAND);
-		b.getNode("EDN").setCountry(Country.ENGLAND);
-		b.getNode("LDN").setCountry(Country.ENGLAND);
-		
-		createArmy(b, Country.FRANCE, "PAR");
-		createArmy(b, Country.FRANCE, "MAR");
-		createFleet(b, Country.FRANCE, "BRE");
-		b.getNode("PAR").setCountry(Country.FRANCE);
-		b.getNode("MAR").setCountry(Country.FRANCE);
-		b.getNode("BRE").setCountry(Country.FRANCE);
-		
-		createArmy(b, Country.GERMANY, "BER");
-		createArmy(b, Country.GERMANY, "MUN");
-		createFleet(b, Country.GERMANY, "KIE");
-		b.getNode("BER").setCountry(Country.GERMANY);
-		b.getNode("MUN").setCountry(Country.GERMANY);
-		b.getNode("KIE").setCountry(Country.GERMANY);
-		
-		createArmy(b, Country.RUSSIA, "WAR");
-		createArmy(b, Country.RUSSIA, "MOS");
-		createFleet(b, Country.RUSSIA, "STP");
-		createFleet(b, Country.RUSSIA, "STE");
-		b.getNode("WAR").setCountry(Country.RUSSIA);
-		b.getNode("MOS").setCountry(Country.RUSSIA);
-		b.getNode("STP").setCountry(Country.RUSSIA);
-		b.getNode("STE").setCountry(Country.RUSSIA);
-		
-		createArmy(b, Country.AUSTRIA, "VIE");
-		createArmy(b, Country.AUSTRIA, "BUD");
-		createFleet(b, Country.AUSTRIA, "TRI");
-		b.getNode("VIE").setCountry(Country.AUSTRIA);
-		b.getNode("BUD").setCountry(Country.AUSTRIA);
-		b.getNode("TRI").setCountry(Country.AUSTRIA);
-		
-		createArmy(b, Country.ITALY, "VEN");
-		createArmy(b, Country.ITALY, "RME");
-		createFleet(b, Country.ITALY, "NAP");
-		b.getNode("VEN").setCountry(Country.ITALY);
-		b.getNode("RME").setCountry(Country.ITALY);
-		b.getNode("NAP").setCountry(Country.ITALY);
-		
-		createArmy(b, Country.TURKEY, "CON");
-		createArmy(b, Country.TURKEY, "SMY");
-		createFleet(b, Country.TURKEY, "ANK");
-		b.getNode("CON").setCountry(Country.TURKEY);
-		b.getNode("SMY").setCountry(Country.TURKEY);
-		b.getNode("ANK").setCountry(Country.TURKEY);
+	private static EnumMap<Country, Algorithm> createAlgorithms() {
+		EnumMap<Country, Algorithm> algorithms = new EnumMap<>(Country.class);
+		for (Country country : Country.values()) {
+			algorithms.put(country, new SimpleHeuristic());
+		}
+		return algorithms;
 	}
 	
-	private static void setupNodes(Board b) {
-		createArmy(b, Country.RUSSIA, "NWY");
-		createArmy(b, Country.RUSSIA, "PRU");
-		createArmy(b, Country.RUSSIA, "WAR");
-		createArmy(b, Country.RUSSIA, "BOH");
-		createArmy(b, Country.RUSSIA, "UKR");
-		createArmy(b, Country.RUSSIA, "GAL");
-		createFleet(b, Country.RUSSIA, "STE");
-		createFleet(b, Country.RUSSIA, "BAL");
-		createFleet(b, Country.RUSSIA, "NTH");
-		createFleet(b, Country.RUSSIA, "CLY");
+	private static class Organism implements Comparable<Organism> {
 		
-		// Relevant opposing actors
-		createArmy(b, Country.ENGLAND, "EDN");
-		createFleet(b, Country.FRANCE, "IRI");
-		createFleet(b, Country.FRANCE, "WAL");
-		createFleet(b, Country.FRANCE, "LDN");
-		createArmy(b, Country.FRANCE, "KIE");
-		createArmy(b, Country.FRANCE, "RUH");
-		createArmy(b, Country.FRANCE, "BUR");
-		createArmy(b, Country.FRANCE, "PAR");
-		createFleet(b, Country.GERMANY, "DEN");
-		createArmy(b, Country.GERMANY, "BER");
-		createArmy(b, Country.GERMANY, "SIL");
-	}
-	
-	private static void setupSupplyCenters(Board b) {
-		b.getNode("NWY").setCountry(Country.RUSSIA);
-		b.getNode("SWE").setCountry(Country.RUSSIA);
-		b.getNode("DEN").setCountry(Country.GERMANY);
-		b.getNode("KIE").setCountry(Country.FRANCE);
-		b.getNode("MUN").setCountry(Country.GERMANY);
-		b.getNode("HOL").setCountry(Country.FRANCE);
-		b.getNode("BEL").setCountry(Country.FRANCE);
-		b.getNode("LDN").setCountry(Country.FRANCE);
-		b.getNode("LVP").setCountry(Country.RUSSIA);
-		b.getNode("EDN").setCountry(Country.ENGLAND);
-		b.getNode("PAR").setCountry(Country.FRANCE);
-		b.getNode("BRE").setCountry(Country.FRANCE);
-		b.getNode("POR").setCountry(Country.FRANCE);
+		private final SimpleHeuristic algorithm;
+		private double score;
 		
-		b.getNode("MOS").setCountry(Country.RUSSIA);
-		b.getNode("STE").setCountry(Country.RUSSIA);
-		b.getNode("ANK").setCountry(Country.TURKEY);
-		b.getNode("CON").setCountry(Country.TURKEY);
-		b.getNode("BUL").setCountry(Country.TURKEY);
-		b.getNode("ROM").setCountry(Country.RUSSIA);
-		b.getNode("SER").setCountry(Country.TURKEY);
-		b.getNode("GRE").setCountry(Country.TURKEY);
-		b.getNode("SMY").setCountry(Country.TURKEY);
-		b.getNode("TRI").setCountry(Country.TURKEY);
-		b.getNode("VIE").setCountry(Country.RUSSIA);
-		b.getNode("NAP").setCountry(Country.ITALY);
-		b.getNode("RME").setCountry(Country.ITALY);
-		b.getNode("TUN").setCountry(Country.ITALY);
-		
-		b.getNode("STP").setCountry(Country.RUSSIA);
-		b.getNode("WAR").setCountry(Country.RUSSIA);
-		b.getNode("BER").setCountry(Country.GERMANY);
-		b.getNode("BUD").setCountry(Country.RUSSIA);
-		b.getNode("VEN").setCountry(Country.AUSTRIA);
-		b.getNode("MAR").setCountry(Country.FRANCE);
-		b.getNode("SPA").setCountry(Country.FRANCE);
-	}
-	
-	private static void createArmy(Board b, Country country, String node) {
-		Unit u = new Unit(UnitType.ARMY, country);
-		u.setNode(b.getNode(node));
-		b.addUnit(u);
-	}
-	
-	private static void createFleet(Board b, Country country, String node) {
-		Unit u = new Unit(UnitType.FLEET, country);
-		u.setNode(b.getNode(node));
-		b.addUnit(u);
-	}
-	
-	private static class Result {
-		
-		private final List<Unit> units;
-		private final double score;
-		
-		public Result(List<Unit> units, double score) {
-			this.units = units;
-			this.score = score;
+		public Organism() {
+			this(new SimpleHeuristic());
 		}
 		
-		public List<Unit> getUnits() {
-			return units;
+		private Organism(SimpleHeuristic algorithm) {
+			this.algorithm = algorithm;
+			this.score = 0;
+		}
+		
+		public Organism pair(Organism o) {
+			// Uncomment for GA
+			return new Organism(new SimpleHeuristic(algorithm, o.algorithm));
 		}
 		
 		public double getScore() {
 			return score;
+		}
+		
+		public void evaluate(BoardFactory factory, EnumMap<Country, Algorithm> algorithms) {
+			algorithms.put(Country.TURKEY, algorithm);
+			double updatedScore = 0;
+			for (int i = 0; i < 10; i++) {
+				Board board = factory.getBoard();
+				EnumMap<Country, Integer> results = ExecutionUtilities.play(board, algorithms, 20);
+				int controlled = results.get(Country.TURKEY);
+				updatedScore += controlled / 18.0;
+			}
+			updatedScore /= 10;
+			score = (score + updatedScore) / 2;
+		}
+		
+		@Override
+		public int compareTo(@NotNull Organism o) {
+			return Double.compare(o.score, score);
 		}
 	}
 	

@@ -1,7 +1,5 @@
 package csci4511.engine.data;
 
-import me.joshlarson.jlcommon.log.Log;
-
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,6 +22,33 @@ public class Board {
 		this.turn = 0;
 		for (Country country : Country.values()) {
 			countryState.put(country, new CountryState());
+		}
+	}
+	
+	public Board(Board copy) {
+		this.nodes = new HashMap<>();
+		this.countryState = new EnumMap<>(Country.class);
+		this.units = new ArrayList<>();
+		this.turn = copy.turn;
+		for (Country country : Country.values()) {
+			countryState.put(country, new CountryState());
+		}
+		for (Node copyNode : copy.nodes.values()) {
+			addNode(new Node(copyNode));
+		}
+		for (Unit copyUnit : copy.units) {
+			Unit myUnit = new Unit(copyUnit);
+			myUnit.setNode(getNode(copyUnit.getNode().getName()));
+			addUnit(myUnit);
+		}
+		for (Node copyNode : copy.nodes.values()) {
+			Node myNode = getNode(copyNode.getName());
+			for (Node army : copyNode.getArmyMovements()) {
+				myNode.addArmyMovement(getNode(army.getName()));
+			}
+			for (Node fleet : copyNode.getFleetMovements()) {
+				myNode.addFleetMovement(getNode(fleet.getName()));
+			}
 		}
 	}
 	
@@ -114,6 +139,11 @@ public class Board {
 				node.setCountry(garissoned.getCountry());
 			}
 		}
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof Board && ((Board) o).nodes.equals(nodes) && ((Board) o).units.equals(units);
 	}
 	
 	@Nonnull

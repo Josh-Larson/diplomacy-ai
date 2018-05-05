@@ -19,7 +19,7 @@ public class ActionHold extends Action {
 	
 	@Override
 	public String toString() {
-		return "ActionHold["+getUnit()+"]";
+		return "ActionHold["+getUnit().getCountry() + "@"+getStart().getName()+"]";
 	}
 	
 }

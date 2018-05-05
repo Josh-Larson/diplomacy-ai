@@ -127,14 +127,6 @@ public class DiplomacyUI {
         Unit unit = node.getGarissoned();
         if (unit != null) {
             label += " " + (unit.getType() == UnitType.ARMY ? "A" : "F");
-            Action action = unit.getAction();
-            if (action != null) {
-                label += " " + action.toString()
-                        .replaceAll("Action", "")
-                        .replaceAll("Unit", "")
-                        .replaceAll("Node", "")
-                        .replaceAll("\\[\\w*?@", "[");
-            }
         }
         return label;
     }
