@@ -1,28 +1,30 @@
 package csci4511.algorithms
 
 import csci4511.engine.ActionUtilities
+import csci4511.engine.ExecutionUtilities
 import csci4511.engine.data.Board
 import csci4511.engine.data.Country
 import csci4511.engine.data.Unit
-import csci4511.engine.data.UnitType
 import csci4511.engine.data.action.Action
 import csci4511.engine.data.action.ActionHold
 import csci4511.engine.resolve.ResolutionEngine
 import me.joshlarson.jlcommon.log.Log
 import java.util.*
-import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
-class UnitMonteCarlo(var runTimeMillis: Int = 100000,
-                     var selectConstant: Float = 0.4f) : Algorithm {
-    var tree = ArrayList<StateNode>()
+class UnitMonteCarlo(val runTimeMillis: Long = TimeUnit.MINUTES.toMillis(2),
+                     val selectConstant: Float = 0.4f,
+                     val maxRandTurns: Int = 200,
+                     val numRandGames: Int = 10) : Algorithm {
 
-    var landmark = 100
+    var tree = ArrayList<StateNode>()
+    var landmark = 0
 
     override fun determineActions(board: Board, country: Country, alliances: EnumSet<Country>): MutableList<Action> {
+        landmark = board.units.size
         tree = ArrayList()
 
-//        val root = StateNode(board, board.units.filter { it.country == country }.mapTo(ArrayList(), { SimpleUnit(it) }))
         val root = StateNode(board, country, board.units.toCollection(ArrayList()))
         tree.add(root)
 
@@ -46,13 +48,13 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
             }
         }
 
-        val numActions = board.units.filter { it.country == country }.size
+        val numActions = board.getUnitCount(country)
         val actions = ArrayList<Action>()
         var searchNode = root
         while (actions.size < numActions) {
             var best: StateNode? = null
             for (node in searchNode.children) {
-                if (tree.contains(node) && node.score >= best?.score ?: 0f)
+                if (tree.contains(node) && node.score >= best?.score ?: 0.0)
                     best = node
             }
             actions.addAll(best?.actions ?: break)
@@ -63,9 +65,6 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
     }
 
     fun selectChildOf(state: StateNode): StateNode {
-        var selected = state
-        var bestScore = 0f
-
         state.visits++
 
         if (state.children.isEmpty()) {
@@ -79,12 +78,13 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
                     }
 
                     for (action in actions) {
+                        val boardClone = Board(state.board)
                         val usedUnits = action.mapTo(ArrayList(), { it.unit })
 
                         var remainingUnits = ArrayList<Unit>()
                         for (oldUnit in state.remainingUnits) {
                             if (!usedUnits.contains(oldUnit)) {
-                                val newUnit = Unit(oldUnit)
+                                val newUnit = boardClone.getNode(oldUnit.node.name).garissoned!!
                                 newUnit.node = oldUnit.node
                                 remainingUnits.add(newUnit)
                             }
@@ -95,12 +95,11 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
                             Log.i("New landmark! $landmark")
                         }
 
-                        val boardClone = Board(state.board)
-
                         if (remainingUnits.isEmpty()) {
                             var node = state
+                            val numActions = boardClone.units.size
                             val resolvedActions = ArrayList<Action>()
-                            while (node.remainingUnits.size > resolvedActions.size) {
+                            while (resolvedActions.size < numActions) {
                                 resolvedActions.addAll(node.actions)
                                 node = node.parent ?: break
                             }
@@ -118,8 +117,10 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
             }
         }
 
+        var selected = state
+        var bestScore = 0.0
         for (child in state.children) {
-            val score = child.score + selectConstant * Math.sqrt(Math.log((++child.visits).toDouble()) / state.visits).toFloat()
+            val score = child.score + selectConstant * Math.sqrt(Math.log((++child.visits).toDouble()) / state.visits)
             if (score >= bestScore) {
                 bestScore = score
                 selected = child
@@ -130,8 +131,18 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
     }
 
     fun playOut(state: StateNode): StateNode {
-        //TODO Actually score this right
-        state.score = ThreadLocalRandom.current().nextFloat()
+        val numActions = state.board.getUnitCount(state.country) - state.remainingUnits.filter { it.country == state.country }.size
+        val parentActions = ArrayList<Action>()
+        var node = state
+        while (parentActions.size < numActions) {
+            parentActions.addAll(node.actions)
+            node = node.parent ?: break
+        }
+
+        val score = ExecutionUtilities.playRandom(state.board, parentActions, state.country, maxRandTurns, numRandGames)
+
+        state.score = score
+
         return state
     }
 
@@ -141,7 +152,7 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
     }
 
     fun backpropogate(state: StateNode) {
-        var score = 0f
+        var score = 0.0
         for (child in state.children) {
             score += child.score
         }
@@ -154,32 +165,10 @@ class UnitMonteCarlo(var runTimeMillis: Int = 100000,
             val remainingUnits: ArrayList<Unit>,
             val actionedUnits: ArrayList<Unit> = ArrayList(),
             val actions: List<Action> = ArrayList(),
-            var score: Float = 1f,
+            var score: Double = 1.0,
             var visits: Int = 0
     ) {
         var parent: StateNode? = null
         var children: ArrayList<StateNode> = ArrayList()
-    }
-
-    data class StateNodeSimple(
-            val board: Board,
-            val remainingUnits: ArrayList<SimpleUnit>,
-            val actionedUnit: SimpleUnit? = null,
-            val action: Action? = null,
-            var score: Float = 1f,
-            var visits: Int = 0,
-            var parent: StateNodeSimple? = null,
-            var children: ArrayList<StateNodeSimple> = ArrayList()
-    )
-
-    data class SimpleUnit(
-            val type: UnitType,
-            val country: Country,
-            val location: String) {
-        constructor(unit: Unit) : this(unit.type, unit.country, unit.node.name)
-
-        fun toUnitFromBoard(board: Board): Unit {
-            return board.getNode(location).garissoned!!
-        }
     }
 }
