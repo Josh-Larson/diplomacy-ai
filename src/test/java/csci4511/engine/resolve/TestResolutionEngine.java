@@ -83,7 +83,27 @@ public class TestResolutionEngine {
 	}
 	
 	@Test
-	public void testBasicSwapSupportBounce() {
+	public void testBasicSupportSameEdgeRetreat() {
+		Board board = createBoard("1,ENGLAND;2,ENGLAND;3,GERMANY;5,GERMANY", "A,1,5; S,2,1;   A,5,1");
+		List<Unit> units = board.getUnits();
+		Assert.assertSame(board.getNode("5"), units.get(0).getNode());
+		Assert.assertSame(board.getNode("2"), units.get(1).getNode());
+		Assert.assertSame(board.getNode("3"), units.get(2).getNode());
+		Assert.assertSame(board.getNode("4"), units.get(3).getNode()); // Auto-Retreat
+	}
+	
+	@Test
+	public void testBasicSupportSameEdgeBounce() {
+		Board board = createBoard("1,ENGLAND;2,ENGLAND;3,GERMANY;5,GERMANY", "A,1,5; S,2,1;   A,5,1; S,3,5");
+		List<Unit> units = board.getUnits();
+		Assert.assertSame(board.getNode("1"), units.get(0).getNode());
+		Assert.assertSame(board.getNode("2"), units.get(1).getNode());
+		Assert.assertSame(board.getNode("3"), units.get(2).getNode());
+		Assert.assertSame(board.getNode("5"), units.get(3).getNode());
+	}
+	
+	@Test
+	public void testBasicSupportRotate() {
 		Board board = createBoard("1,ENGLAND;2,ENGLAND;5,GERMANY;3,FRANCE", "A,1,5;S,2,1;  A,5,3;A,3,1");
 		List<Unit> units = board.getUnits();
 		Assert.assertSame(board.getNode("5"), units.get(0).getNode());

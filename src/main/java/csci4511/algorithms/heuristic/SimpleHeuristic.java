@@ -8,16 +8,13 @@ import csci4511.engine.data.Node;
 import csci4511.engine.data.Unit;
 import csci4511.engine.data.action.Action;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleHeuristic implements Algorithm {
 	
-	private static final int INPUT_DATA = 16;
-	private static final int IMPLEMENTATIONS = 3;
+	private static final int INPUT_DATA = 14;
+	private static final int IMPLEMENTATIONS = 6;
 	
 	private final ActionSelectionNetwork network;
 	private final SimpleHeuristicImplementation [] impls;
@@ -65,19 +62,6 @@ public class SimpleHeuristic implements Algorithm {
 		return network.toString();
 	}
 	
-	private static double binary(boolean b) {
-		return b ? 1 : -1;
-	}
-	
-	private static int countNearbySupplyCenters(Node n) {
-		int count = 0;
-		for (Node move : n.getMovements()) {
-			if (move.isSupply())
-				count++;
-		}
-		return count;
-	}
-	
 	private static class SimpleHeuristicImplementation {
 		
 		private final ActionSelectionNetwork network;
@@ -98,25 +82,26 @@ public class SimpleHeuristic implements Algorithm {
 		public synchronized List<Action> determineActions(Board board, Country country, EnumSet<Country> alliances) {
 			init(board, country, alliances);
 			
-			List<List<Action>> actionList = ActionUtilities.getActions(board, alliances);
-			for (int i = 0; i < 10  && !units.isEmpty(); i++) {
-				List<Action> selectedAction = null;
-				double currentScore = Double.MIN_VALUE;
+			List<List<Action>> possibleActions = ActionUtilities.getActions(board, alliances);
+			possibleActions.sort(Comparator.comparingDouble(this::evaluatePossibility).reversed());
+			Random random = new Random();
+			double currentLikelihood = 0.4;
+			for (int i = 0; i < 10 && !units.isEmpty(); i++) {
 				actionSequenceLoop:
-				for (List<Action> actionSequence : actionList) {
+				for (List<Action> actionSequence : possibleActions) {
 					for (Action action : actionSequence) {
 						if (!units.contains(action.getUnit()) || !nodes.contains(action.getDestination()))
 							continue actionSequenceLoop;
 					}
-					double score = evaluatePossibility(actionSequence);
-					if (score > currentScore) {
-						selectedAction = actionSequence;
-						currentScore = score;
+					if (random.nextDouble() <= 1 - currentLikelihood) {
+						nodes.remove(actionSequence.get(0).getDestination());
+						actions.addAll(actionSequence);
+						for (Action action : actionSequence) {
+							units.remove(action.getUnit());
+						}
+						break;
 					}
-				}
-				if (selectedAction != null) {
-					nodes.remove(selectedAction.get(0).getDestination());
-					commitAction(selectedAction);
+					currentLikelihood *= currentLikelihood;
 				}
 			}
 			return actions;
@@ -129,13 +114,6 @@ public class SimpleHeuristic implements Algorithm {
 			this.units = board.getUnits(alliances);
 			this.nodes = ActionUtilities.getMovementNodes(units);
 			this.actions = new ArrayList<>();
-		}
-		
-		private void commitAction(List<Action> actions) {
-			this.actions.addAll(actions);
-			for (Action action : actions) {
-				units.remove(action.getUnit());
-			}
 		}
 		
 		private double evaluatePossibility(List<Action> possibility) {
@@ -159,21 +137,36 @@ public class SimpleHeuristic implements Algorithm {
 			}
 			inputData[0] = binary(destination.isSupply());
 			inputData[1] = binary(source.isSupply());
-			inputData[2] = binary(possibility.size() >= ActionUtilities.getEnemyNearby(destination, alliances));
-			inputData[3] = binary(destination.getMovements().size() >= source.getMovements().size());
-			inputData[4] = binary(countNearbySupplyCenters(destination) >= countNearbySupplyCenters(source));
-			inputData[5] = binary(fallTurn);
+			inputData[2] = compare(possibility.size(), ActionUtilities.getEnemyNearby(destination, alliances));
+			inputData[3] = compare(destination.getMovements().size(), source.getMovements().size());
+			inputData[4] = compare(countNearbySupplyCenters(destination), countNearbySupplyCenters(source));
+			inputData[5] = binary(interruptable);
 			inputData[6] = binary(destination.getGarissoned() != null);
 			inputData[7] = binary(destination.getCountry() != country);
 			inputData[8] = binary(destination.getCountry() != country && fallTurn);
 			inputData[9] = binary(source.getCountry() != country);
 			inputData[10] = binary(source.getCountry() != country && fallTurn);
 			inputData[11] = binary(source == destination);
-			inputData[12] = binary(destination.isSupply() && fallTurn);
-			inputData[13] = binary(source.isSupply() && fallTurn);
-			inputData[14] = binary(interruptable);
-			inputData[15] = Math.random();
+			inputData[12] = binary(destination.isSupply() && destination.getCountry() != country && fallTurn);
+			inputData[13] = binary(source.isSupply() && source.getCountry() != country && fallTurn);
 			return network.calculate(inputData);
+		}
+		
+		private static double binary(boolean b) {
+			return b ? 1 : -1;
+		}
+		
+		private static double compare(int x, int y) {
+			return Integer.compare(x, y);
+		}
+		
+		private static int countNearbySupplyCenters(Node n) {
+			int count = 0;
+			for (Node move : n.getMovements()) {
+				if (move.isSupply())
+					count++;
+			}
+			return count;
 		}
 		
 	}

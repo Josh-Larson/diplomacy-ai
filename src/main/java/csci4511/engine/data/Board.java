@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Board {
@@ -78,6 +79,14 @@ public class Board {
 		return countryState.get(country).getSupplyCount();
 	}
 	
+	public Country hasWinner() {
+		for (Entry<Country, CountryState> state : countryState.entrySet()) {
+			if (state.getValue().getSupplyCount() >= 18)
+				return state.getKey();
+		}
+		return null;
+	}
+	
 	public Node getNode(String name) {
 		return nodes.get(name);
 	}
@@ -127,6 +136,7 @@ public class Board {
 	public void removeUnit(@Nonnull Unit unit) {
 		this.units.remove(unit);
 		countryState.get(unit.getCountry()).decrementUnit();
+		unit.getNode().setGarissoned(null);
 	}
 	
 	public void updateSupply() {

@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -92,7 +91,6 @@ public class TestActionUtilities {
 		
 		Action action = new ActionHold(u1);
 		List<List<Action>> possibleActions = ActionUtilities.createActionsSupportable(action, EnumSet.of(Country.ENGLAND));
-		System.out.println(possibleActions);
 		Assert.assertEquals(2, possibleActions.size());
 		{
 			List<Action> chain = possibleActions.get(0);

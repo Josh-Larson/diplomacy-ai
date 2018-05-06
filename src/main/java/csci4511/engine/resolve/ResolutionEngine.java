@@ -146,17 +146,7 @@ public class ResolutionEngine {
 	private void resolveDisputed(List<Action> actions, Node n) {
 		Action winner = getWinningAction(actions);
 		if (winner != null) {
-			Unit garissoned = n.getGarissoned();
-			boolean validDisplacement = garissoned == null || garissoned.getCountry() != winner.getUnit().getCountry();
-			if (validDisplacement) {
-				if (garissoned != null) {
-					List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
-					possibilities.remove(n);
-					possibilities.remove(winner.getStart());
-					retreatPossibilities.put(garissoned, possibilities);
-				}
-				executeAction(winner, n);
-			}
+			executeAction(winner, n);
 		}
 		unitActions.values().removeAll(actions);
 		resolvingActions.remove(n);
@@ -205,10 +195,29 @@ public class ResolutionEngine {
 		}
 	}
 	
+	private boolean resolveDisplacement(Node n, Action action) {
+		if (action.getType() != ActionType.ATTACK)
+			return true;
+		
+		Unit garissoned = n.getGarissoned();
+		boolean validDisplacement = garissoned == null || garissoned.getCountry() != action.getUnit().getCountry();
+		
+		if (validDisplacement && garissoned != null) {
+			List<Node> possibilities = new ArrayList<>(garissoned.getMovementLocations());
+			possibilities.remove(n);
+			possibilities.remove(action.getStart());
+			retreatPossibilities.put(garissoned, possibilities);
+		}
+		return validDisplacement;
+	}
+	
 	private void executeAction(Action a, Node destination) {
-		Unit u = a.getUnit();
-		u.setNode(destination);
-		unitActions.remove(u);
+		if (resolveDisplacement(destination, a)) {
+			Unit u = a.getUnit();
+			u.setNode(destination);
+			unitActions.remove(u);
+			getResolvingActions(destination).remove(a);
+		}
 	}
 	
 	private List<Action> getResolvingActions(Node n) {

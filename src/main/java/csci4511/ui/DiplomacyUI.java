@@ -148,11 +148,7 @@ public class DiplomacyUI {
     		return Color.blue;
         Country country = node.getCountry();
         if (country == null) {
-        	Unit unit = node.getGarissoned();
-        	if (unit != null)
-        		country = unit.getCountry();
-        	else
-        		return Color.lightGray;
+			return Color.lightGray;
 		}
         return getCountryColor(country);
     }

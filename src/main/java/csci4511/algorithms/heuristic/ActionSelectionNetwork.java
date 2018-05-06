@@ -5,10 +5,7 @@ import java.util.Random;
 
 public class ActionSelectionNetwork {
 	
-	private static final int INPUT_DATA = 16;
-	
-	private static double MUTATION_RATE = 0.1;
-	private static double MUTATION_AMOUNT = 1 / 8.0;
+	private static final int INPUT_DATA = 14;
 	
 	private final double [] weights;
 	private String weightStr;
@@ -44,8 +41,8 @@ public class ActionSelectionNetwork {
 		
 		// Mutation
 		for (int i = 0; i < weights.length; i++) {
-			if (random.nextDouble() <= MUTATION_RATE)
-				weights[i] += random.nextBoolean() ? MUTATION_AMOUNT : -MUTATION_AMOUNT;
+			if (random.nextDouble() <= 0.1)
+				weights[i] += random.nextBoolean() ? 0.125 : -0.125;
 		}
 	}
 	

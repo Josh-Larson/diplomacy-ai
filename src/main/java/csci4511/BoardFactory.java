@@ -6,29 +6,16 @@ import csci4511.engine.data.Unit;
 import csci4511.engine.data.UnitType;
 import me.joshlarson.jlcommon.concurrency.ThreadPool;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 public class BoardFactory {
 	
-	private static final byte [] DEFAULT_BOARD;
+	private static final Board DEFAULT_BOARD;
 	
 	static {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		try (InputStream is = Diplomacy.class.getResourceAsStream("/diplomacy.txt")) {
-			byte [] buffer = new byte[4096];
-			int n;
-			while ((n = is.read(buffer)) > 0) {
-				baos.write(buffer, 0, n);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		DEFAULT_BOARD = baos.toByteArray();
+		DEFAULT_BOARD = Board.loadFromStream(Diplomacy.class.getResourceAsStream("/diplomacy.txt"));
+		setupDefaultBoard();
 	}
 	
 	private final ThreadPool threadPool;
@@ -69,12 +56,11 @@ public class BoardFactory {
 	}
 	
 	public static Board createDefaultBoard() {
-		Board board = Board.loadFromStream(new ByteArrayInputStream(DEFAULT_BOARD));
-		setupDefaultBoard(board);
-		return board;
+		return new Board(DEFAULT_BOARD);
 	}
 	
-	private static void setupDefaultBoard(Board b) {
+	private static void setupDefaultBoard() {
+		Board b = DEFAULT_BOARD;
 		createArmy(b, Country.ENGLAND, "LVP");
 		createFleet(b, Country.ENGLAND, "EDN");
 		createFleet(b, Country.ENGLAND, "LDN");
