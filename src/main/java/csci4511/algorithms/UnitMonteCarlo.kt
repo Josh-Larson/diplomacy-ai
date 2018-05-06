@@ -13,15 +13,16 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
-class UnitMonteCarlo(val runTimeMillis: Long = TimeUnit.MINUTES.toMillis(2),
-                     val selectConstant: Float = 0.4f,
-                     val maxRandTurns: Int = 200,
-                     val numRandGames: Int = 10) : Algorithm {
+class UnitMonteCarlo(var runTimeMillis: Long = TimeUnit.SECONDS.toMillis(60),
+                     var selectConstant: Float = 0.4f,
+                     var maxRandTurns: Int = 40,
+                     var numRandGames: Int = 10) : Algorithm {
 
     var tree = ArrayList<StateNode>()
     var landmark = 0
 
     override fun determineActions(board: Board, country: Country, alliances: EnumSet<Country>): MutableList<Action> {
+        Log.i("MC deciding for $country")
         landmark = board.units.size
         tree = ArrayList()
 
@@ -61,6 +62,7 @@ class UnitMonteCarlo(val runTimeMillis: Long = TimeUnit.MINUTES.toMillis(2),
             searchNode = best
         }
 
+        Log.d("MC selected actions: $actions")
         return actions.toMutableList()
     }
 
@@ -85,7 +87,6 @@ class UnitMonteCarlo(val runTimeMillis: Long = TimeUnit.MINUTES.toMillis(2),
                         for (oldUnit in state.remainingUnits) {
                             if (!usedUnits.contains(oldUnit)) {
                                 val newUnit = boardClone.getNode(oldUnit.node.name).garissoned!!
-                                newUnit.node = oldUnit.node
                                 remainingUnits.add(newUnit)
                             }
                         }
