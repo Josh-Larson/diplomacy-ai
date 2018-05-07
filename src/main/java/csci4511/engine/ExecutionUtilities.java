@@ -63,17 +63,11 @@ public class ExecutionUtilities {
 			if (board.getTurn() % 2 != 0)
 				continue;
 			
-			boolean winner = false;
-			for (Country country : COUNTRIES) {
-				if (board.getSupplyCount(country) >= 18)
-					winner = true;
-			}
-			if (winner) {
-				for (Country country : COUNTRIES) {
-					results.put(country, board.getSupplyCount(country));
-				}
-				return results;
-			}
+			if (board.hasWinner() != null)
+				break;
+		}
+		for (Country country : COUNTRIES) {
+			results.put(country, board.getSupplyCount(country));
 		}
 		return results;
 	}

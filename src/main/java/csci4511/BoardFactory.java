@@ -84,7 +84,7 @@ public class BoardFactory {
 		
 		createArmy(b, Country.RUSSIA, "WAR");
 		createArmy(b, Country.RUSSIA, "MOS");
-		createFleet(b, Country.RUSSIA, "STP");
+		createFleet(b, Country.RUSSIA, "STP-SC");
 		createFleet(b, Country.RUSSIA, "STE");
 		b.getNode("WAR").setCountry(Country.RUSSIA);
 		b.getNode("MOS").setCountry(Country.RUSSIA);

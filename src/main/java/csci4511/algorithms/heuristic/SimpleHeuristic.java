@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleHeuristic implements Algorithm {
 	
 	private static final int INPUT_DATA = 14;
-	private static final int IMPLEMENTATIONS = 6;
+	private static final int IMPLEMENTATIONS = 3;
 	
 	private final ActionSelectionNetwork network;
 	private final SimpleHeuristicImplementation [] impls;

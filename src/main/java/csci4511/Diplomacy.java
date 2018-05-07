@@ -1,6 +1,7 @@
 package csci4511;
 
 import csci4511.algorithms.Algorithm;
+import csci4511.algorithms.UnitMonteCarlo;
 import csci4511.algorithms.heuristic.SimpleHeuristic;
 import csci4511.algorithms.manual.ManualAlgorithm;
 import csci4511.algorithms.random.RandomAlgorithm;
@@ -20,11 +21,12 @@ import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
+import java.util.function.Function;
 
 public class Diplomacy {
 	
 	public static void main(String[] args) {
-		SafeMain.main("diplomacy", Diplomacy::runTraining);
+		SafeMain.main("diplomacy", Diplomacy::runRanking);
 	}
 	
 	/*
@@ -42,10 +44,13 @@ public class Diplomacy {
 		Board test = BoardFactory.createDefaultBoard();
 		JFrame frame = DiplomacyUI.showBoard(test, new Dimension(1152, 965));
 		EnumMap<Country, Algorithm> algorithms = new EnumMap<>(Country.class);
-		for (Country country : Country.values()) {
-			algorithms.put(country, new SimpleHeuristic(new double[]{0.62, -0.76, -0.02, 0.08, 0.23, 0.18, -0.55, 1.48, 0.01, -0.57, -0.19, -0.14, 0.62, -0.45, 0.63}));
-		}
-//		algorithms.put(Country.TURKEY, new ManualAlgorithm());
+		algorithms.put(Country.ENGLAND, new SimpleHeuristic(new double[]{0.87, 0.29, 0.22, -0.09, 0.08, 0.1, -0.41, 0.6, 0.91, -0.09, 0.04, -0.2, 0.6, 0.3}));
+		algorithms.put(Country.FRANCE, new SimpleHeuristic(new double[]{0.03, 0.17, -0.04, 0.54, -0.41, -1.04, -0.59, 1.08, -0.04, 0.76, 0.94, -0.14, 0.96, -0.96}));
+		algorithms.put(Country.GERMANY, new SimpleHeuristic(new double[]{0.51, -0.71, -0.66, 0.17, -0.56, 0.39, -0.65, 0.92, 0.62, -0.13, 0.43, 0.24, 0.51, -0.67}));
+		algorithms.put(Country.RUSSIA, new SimpleHeuristic(new double[]{0.83, 0.03, -0.55, 0.95, -0.13, 0.19, -0.55, 0.65, 1.39, 0.15, 0.77, 0, 0.19, -1.03}));
+		algorithms.put(Country.ITALY, new SimpleHeuristic(new double[]{0.56, 0.66, -0.21, 0.43, -0.24, -0.51, -0.23, 0.54, 0.94, 0.76, 0, -0.09, 0.41, 0.25}));
+		algorithms.put(Country.AUSTRIA, new SimpleHeuristic(new double[]{0.56, -1.04, -0.57, 0.21, 0.01, 0.02, -0.52, 0.75, -0.03, 0.73, 0.42, 0.05, 0.63, 0.93}));
+		algorithms.put(Country.TURKEY, new SimpleHeuristic(new double[]{0.53, 0.14, -0.19, -0.36, 0.3, 0.14, 0, 0.98, 0.04, 0.08, -0.06, -0.09, 0.33, -0.39}));
 		while (frame.isShowing()) {
 			// Empty
 			ExecutionUtilities.playIteration(test, algorithms::get);
@@ -53,6 +58,33 @@ public class Diplomacy {
 			if (!Delay.sleepMilli(1000))
 				break;
 		}
+	}
+	
+	private static void runRanking() {
+		EnumMap<Country, Algorithm> algorithms = new EnumMap<>(Country.class);
+		algorithms.put(Country.ENGLAND, new SimpleHeuristic(new double[]{0.87, 0.29, 0.22, -0.09, 0.08, 0.1, -0.41, 0.6, 0.91, -0.09, 0.04, -0.2, 0.6, 0.3}));
+		algorithms.put(Country.FRANCE, new SimpleHeuristic(new double[]{0.03, 0.17, -0.04, 0.54, -0.41, -1.04, -0.59, 1.08, -0.04, 0.76, 0.94, -0.14, 0.96, -0.96}));
+		algorithms.put(Country.GERMANY, new SimpleHeuristic(new double[]{0.51, -0.71, -0.66, 0.17, -0.56, 0.39, -0.65, 0.92, 0.62, -0.13, 0.43, 0.24, 0.51, -0.67}));
+		algorithms.put(Country.RUSSIA, new SimpleHeuristic(new double[]{0.83, 0.03, -0.55, 0.95, -0.13, 0.19, -0.55, 0.65, 1.39, 0.15, 0.77, 0, 0.19, -1.03}));
+		algorithms.put(Country.ITALY, new SimpleHeuristic(new double[]{0.56, 0.66, -0.21, 0.43, -0.24, -0.51, -0.23, 0.54, 0.94, 0.76, 0, -0.09, 0.41, 0.25}));
+		algorithms.put(Country.AUSTRIA, new SimpleHeuristic(new double[]{0.56, -1.04, -0.57, 0.21, 0.01, 0.02, -0.52, 0.75, -0.03, 0.73, 0.42, 0.05, 0.63, 0.93}));
+		algorithms.put(Country.TURKEY, new SimpleHeuristic(new double[]{0.53, 0.14, -0.19, -0.36, 0.3, 0.14, 0, 0.98, 0.04, 0.08, -0.06, -0.09, 0.33, -0.39}));
+		
+		List<Country> countries = Arrays.asList(Country.values());
+		countries.parallelStream().forEach(country -> {
+			System.out.println("Starting " + country);
+			EnumMap<Country, Integer> wins = new EnumMap<>(Country.class);
+			UnitMonteCarlo monteCarlo = new UnitMonteCarlo();
+			Function<Country, Algorithm> algorithmSelection = c -> (c == country ? monteCarlo : algorithms.get(c));
+			for (int i = 0; i < 100; i++) {
+				Board board = BoardFactory.createDefaultBoard();
+				EnumMap<Country, Integer> results = ExecutionUtilities.play(board, algorithmSelection, 50);
+				for (Country c : countries)
+					wins.merge(c, results.get(c), (p, n) -> p+n);
+//				System.out.println(results);
+			}
+			System.out.println("Final for "+country+": " + wins);
+		});
 	}
 	
 	private static void runTraining() {
