@@ -2,6 +2,7 @@ package csci4511.ui;
 
 import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
+import csci4511.engine.data.node.StandardNode;
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
@@ -29,9 +30,9 @@ public class DiplomacyUI {
 
     private static boolean REAL_UI = true;
     
-    private static Node a = new Node("A", true, null);
-    private static Node b = new Node("B", true, null);
-    private static Node c = new Node("C", true, null);
+    private static Node a = new StandardNode("A", true, null);
+    private static Node b = new StandardNode("B", true, null);
+    private static Node c = new StandardNode("C", true, null);
 
     public static void main(String[] args) {
         SparseMultigraph<Node, String> map = new SparseMultigraph<>();

@@ -4,6 +4,7 @@ import csci4511.engine.data.*;
 import csci4511.engine.data.action.Action;
 import csci4511.engine.data.action.ActionHold;
 import csci4511.engine.data.action.ActionSupport;
+import csci4511.engine.data.node.StandardNode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,16 +19,16 @@ import java.util.List;
 public class TestActionUtilities {
 	
 	private Board board;
-	private Node n1;
-	private Node n2;
-	private Node n3;
+	private StandardNode n1;
+	private StandardNode n2;
+	private StandardNode n3;
 	
 	@Before
 	public void init() {
 		board = new Board();
-		n1 = new Node("n1", false, null);
-		n2 = new Node("n2", false, null);
-		n3 = new Node("n3", false, null);
+		n1 = new StandardNode("n1", false, null);
+		n2 = new StandardNode("n2", false, null);
+		n3 = new StandardNode("n3", false, null);
 		
 		n1.addArmyMovement(n2);
 		n1.addArmyMovement(n3);

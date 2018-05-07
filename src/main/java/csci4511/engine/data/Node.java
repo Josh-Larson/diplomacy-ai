@@ -1,123 +1,54 @@
 package csci4511.engine.data;
 
+import csci4511.engine.data.node.CoastalNode;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-public class Node {
-	
-	private final String name;
-	private final boolean supply;
-	private final Country homeCountry;
-	private final List<Node> armyMovements;
-	private final List<Node> fleetMovements;
-	private final List<Node> movements;
-	
-	private Country country;
-	private Unit garissoned;
-	
-	public Node(@Nonnull String name, boolean supply, Country homeCountry) {
-		this.name = name;
-		this.supply = supply;
-		this.homeCountry = homeCountry;
-		this.armyMovements = new ArrayList<>();
-		this.fleetMovements = new ArrayList<>();
-		this.movements = new ArrayList<>();
-		this.country = homeCountry;
-		this.garissoned = null;
-	}
-	
-	public Node(Node copy) {
-		this.name = copy.name;
-		this.supply = copy.supply;
-		this.homeCountry = copy.homeCountry;
-		this.armyMovements = new ArrayList<>();
-		this.fleetMovements = new ArrayList<>();
-		this.movements = new ArrayList<>();
-		this.country = copy.homeCountry;
-		this.garissoned = null;
-	}
+public interface Node {
 	
 	@Nonnull
-	public String getName() {
-		return name;
-	}
+	String getName();
 	
-	public boolean isSupply() {
-		return supply;
-	}
+	boolean isSupply();
 	
 	@CheckForNull
-	public Country getHomeCountry() {
-		return homeCountry;
-	}
+	Country getHomeCountry();
 	
 	@Nonnull
-	public List<Node> getArmyMovements() {
-		return armyMovements;
-	}
+	List<Node> getArmyMovements();
 	
 	@Nonnull
-	public List<Node> getFleetMovements() {
-		return fleetMovements;
-	}
+	List<CoastalNode> getFleetMovements(String coast);
 	
 	@Nonnull
-	public List<Node> getMovements() {
-		return movements;
-	}
+	List<CoastalNode> getFleetMovements();
+	
+	@Nonnull
+	List<Node> getMovements();
 	
 	@CheckForNull
-	public Country getCountry() {
-		return country;
-	}
+	Country getCountry();
 	
 	@CheckForNull
-	public Unit getGarissoned() {
-		return garissoned;
-	}
+	Unit getGarissoned();
 	
-	public void setCountry(@Nonnull Country country) {
-		this.country = country;
-	}
+	void setCountry(@Nonnull Country country);
 	
-	public void addArmyMovement(@Nonnull Node node) {
-		if (armyMovements.contains(node) || node == this)
-			return;
-		armyMovements.add(node);
-		if (!movements.contains(node))
-			movements.add(node);
-		node.addArmyMovement(this);
-	}
+	void addArmyMovement(@Nonnull Node node);
 	
-	public void addFleetMovement(@Nonnull Node node) {
-		if (fleetMovements.contains(node) || node == this)
-			return;
-		fleetMovements.add(node);
-		if (!movements.contains(node))
-			movements.add(node);
-		node.addFleetMovement(this);
-	}
+	@Nonnull
+	CoastalNode getCoast(@Nonnull String coast);
 	
-	@Override
-	public String toString() {
-		if (garissoned != null)
-			return "Node[" + name + "  GAR="+garissoned.getCountry()+"]";
-		return "Node["+name+"]";
-	}
+	@Nonnull
+	Collection<CoastalNode> getCoasts();
 	
-	@Override
-	public int hashCode() {
-		return name.hashCode();
-	}
+	@Nonnull
+	Node getCoreNode();
 	
-	@Override
-	public boolean equals(Object o) {
-		return o == this;
-	}
+	boolean equals(Object o);
 	
-	void setGarissoned(Unit garissoned) {
-		this.garissoned = garissoned;
-	}
+	void setGarissoned(Unit garissoned);
 }

@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,6 +173,20 @@ public class TestResolutionEngine {
 		Assert.assertSame(board.getNode("4"), units.get(0).getNode());
 		Assert.assertSame(board.getNode("2"), units.get(1).getNode());
 		Assert.assertSame(board.getNode("3"), units.get(2).getNode());
+	}
+	
+	@Test
+	public void testFleetMovement() {
+		Board board = Board.loadFromStream(TestResolutionEngine.class.getResourceAsStream("/5-node-fleet-board.txt"));
+		Unit eng = new Unit(UnitType.FLEET, Country.ENGLAND);
+		eng.setNode(board.getNode("1"));
+		Unit ger = new Unit(UnitType.FLEET, Country.GERMANY);
+		ger.setNode(board.getNode("4"));
+		
+		new ResolutionEngine().resolve(board, Collections.singletonList(new ActionAttack(eng, eng.getMovementLocations().get(0))));
+		
+		System.out.println(eng.getMovementLocations());
+		System.out.println(ger.getMovementLocations());
 	}
 	
 	private static Board createBoard(String unitStr, String moveStr) {

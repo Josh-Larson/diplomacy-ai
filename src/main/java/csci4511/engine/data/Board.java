@@ -1,5 +1,8 @@
 package csci4511.engine.data;
 
+import csci4511.engine.data.node.CoastalNode;
+import csci4511.engine.data.node.StandardNode;
+
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Board {
 	
-	private final Map<String, Node> nodes;
+	private final Map<String, StandardNode> nodes;
 	private final EnumMap<Country, CountryState> countryState;
 	private final List<Unit> units;
 	private int turn;
@@ -34,8 +37,8 @@ public class Board {
 		for (Country country : Country.values()) {
 			countryState.put(country, new CountryState());
 		}
-		for (Node copyNode : copy.nodes.values()) {
-			addNode(new Node(copyNode));
+		for (StandardNode copyNode : copy.nodes.values()) {
+			addNode(new StandardNode(copyNode));
 		}
 		for (Unit copyUnit : copy.units) {
 			Unit myUnit = new Unit(copyUnit);
@@ -47,8 +50,11 @@ public class Board {
 			for (Node army : copyNode.getArmyMovements()) {
 				myNode.addArmyMovement(getNode(army.getName()));
 			}
-			for (Node fleet : copyNode.getFleetMovements()) {
-				myNode.addFleetMovement(getNode(fleet.getName()));
+			for (CoastalNode copyCoast : copyNode.getCoasts()) {
+				CoastalNode myCoast = myNode.getCoast(copyCoast.getCoastName());
+				for (CoastalNode fleet : copyCoast.getFleetMovements()) {
+					myCoast.addFleetMovement(getCoastalNode(fleet.getName()));
+				}
 			}
 		}
 	}
@@ -62,12 +68,12 @@ public class Board {
 	}
 	
 	@Nonnull
-	public Collection<Node> getNodes() {
+	public Collection<StandardNode> getNodes() {
 		return nodes.values();
 	}
 	
 	@Nonnull
-	public Collection<Node> getHomeNodes(Country country) {
+	public Collection<StandardNode> getHomeNodes(Country country) {
 		return countryState.get(country).getHomeNodes();
 	}
 	
@@ -88,7 +94,16 @@ public class Board {
 	}
 	
 	public Node getNode(String name) {
+		if (name.indexOf('-') != -1)
+			return getCoastalNode(name);
 		return nodes.get(name);
+	}
+	
+	public CoastalNode getCoastalNode(String name) {
+		int dash = name.indexOf('-');
+		if (dash == -1)
+			return nodes.get(name).getCoast("");
+		return nodes.get(name.substring(0, dash)).getCoast(name.substring(dash+1));
 	}
 	
 	@Nonnull
@@ -115,7 +130,7 @@ public class Board {
 		return allianceUnits;
 	}
 	
-	public void addNode(@Nonnull Node node) {
+	public void addNode(@Nonnull StandardNode node) {
 		Node prev = this.nodes.putIfAbsent(node.getName(), node);
 		if (prev != null)
 			throw new IllegalArgumentException("Node already in board! " + prev);
@@ -168,7 +183,7 @@ public class Board {
 				String [] parts = node.split(",", 3);
 				if (parts.length != 3)
 					throw new RuntimeException("Invalid node definition line");
-				board.addNode(new Node(parts[0], parts[1].equals("*"), parts[2].isEmpty() ? null : Country.valueOf(parts[2])));
+				board.addNode(new StandardNode(parts[0], parts[1].equals("*"), parts[2].isEmpty() ? null : Country.valueOf(parts[2])));
 			}
 			
 			String line;
@@ -190,20 +205,22 @@ public class Board {
 				if (parts.length != 2)
 					throw new RuntimeException("Invalid connection line");
 				
-				if (army)
+				if (army) {
 					board.getNode(parts[0]).addArmyMovement(board.getNode(parts[1]));
-				else
-					board.getNode(parts[0]).addFleetMovement(board.getNode(parts[1]));
+				} else {
+					board.getCoastalNode(parts[0]).addFleetMovement(board.getCoastalNode(parts[1]));
+				}
 			}
 			return board;
 		} catch (RuntimeException | IOException e) {
+			e.printStackTrace();
 			throw new RuntimeException("Line: " + lineNum, e);
 		}
 	}
 	
 	private static class CountryState {
 		
-		private final List<Node> homeNodes;
+		private final List<StandardNode> homeNodes;
 		private final AtomicInteger unitCount;
 		private final AtomicInteger supplyCount;
 		
@@ -213,7 +230,7 @@ public class Board {
 			this.supplyCount = new AtomicInteger(0);
 		}
 		
-		public void addHomeNode(Node node) {
+		public void addHomeNode(StandardNode node) {
 			homeNodes.add(node);
 		}
 		
@@ -233,7 +250,7 @@ public class Board {
 			supplyCount.decrementAndGet();
 		}
 		
-		public Collection<Node> getHomeNodes() {
+		public Collection<StandardNode> getHomeNodes() {
 			return homeNodes;
 		}
 		

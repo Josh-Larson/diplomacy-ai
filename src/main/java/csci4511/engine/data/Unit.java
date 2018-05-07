@@ -1,5 +1,7 @@
 package csci4511.engine.data;
 
+import csci4511.engine.data.node.StandardNode;
+
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +45,8 @@ public class Unit {
 	}
 	
 	public void setNode(@Nonnull Node node) {
+		if (type == UnitType.FLEET && node instanceof StandardNode)
+			node = node.getCoast("");
 		Node prev = this.node;
 		if (prev != null && prev.getGarissoned() == this)
 			prev.setGarissoned(null);
@@ -51,7 +55,7 @@ public class Unit {
 	}
 	
 	@Nonnull
-	public List<Node> getMovementLocations() {
+	public List<? extends Node> getMovementLocations() {
 		return type == UnitType.ARMY ? node.getArmyMovements() : node.getFleetMovements();
 	}
 	

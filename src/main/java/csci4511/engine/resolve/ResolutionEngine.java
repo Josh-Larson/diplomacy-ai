@@ -27,7 +27,7 @@ public class ResolutionEngine {
 		this.unitActions.clear();
 		for (Action a : actions) {
 			Node dst = a.getDestination();
-			this.resolvingActions.computeIfAbsent(dst, n -> new CopyOnWriteArrayList<>()).add(a);
+			this.resolvingActions.computeIfAbsent(dst.getCoreNode(), n -> new CopyOnWriteArrayList<>()).add(a);
 			this.unitActions.put(a.getUnit(), a);
 		}
 		for (Unit u : board.getUnits()) {
@@ -49,14 +49,14 @@ public class ResolutionEngine {
 		if (srcAction == null || srcAction.getType() != ActionType.ATTACK)
 			return;
 		
-		Node dst = srcAction.getDestination();
+		Node dst = srcAction.getDestination().getCoreNode();
 		if (dst.getGarissoned() == null)
 			return;
 		Action dstAction = getUnitAction(dst.getGarissoned());
 		if (dstAction == null || dstAction.getType() != ActionType.ATTACK)
 			return;
 		
-		if (dstAction.getDestination() == src) {
+		if (dstAction.getDestination().getCoreNode() == src) {
 			int srcStrength = 0, dstStrength = 0;
 			List<Action> actions = new ArrayList<>();
 			actions.add(srcAction);
@@ -186,7 +186,7 @@ public class ResolutionEngine {
 		switch (garissonedAction.getType()) {
 			case SUPPORT:
 			case CONVOY:
-				if (garissonedAction.getDestination() == a.getUnit().getNode()) { // My action is invalid
+				if (garissonedAction.getDestination().getCoreNode() == a.getUnit().getNode().getCoreNode()) { // My action is invalid
 					setActionHold(a.getUnit());
 				} else { // Their action is invalid
 					setActionHold(garissoned);
@@ -214,7 +214,7 @@ public class ResolutionEngine {
 	private void executeAction(Action a, Node destination) {
 		if (resolveDisplacement(destination, a)) {
 			Unit u = a.getUnit();
-			u.setNode(destination);
+			u.setNode(a.getDestination());
 			unitActions.remove(u);
 			getResolvingActions(destination).remove(a);
 		}
